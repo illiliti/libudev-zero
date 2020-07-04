@@ -15,7 +15,7 @@ struct udev_device
 {
     struct udev_list_entry properties;
     struct udev_list_entry sysattrs;
-	struct udev_device *parent;
+    struct udev_device *parent;
     struct udev *udev;
     char *subsystem;
     char *syspath;

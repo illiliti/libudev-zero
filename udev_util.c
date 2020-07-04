@@ -7,12 +7,12 @@
 
 int xasprintf(char *str, const char *fmt, ...)
 {
-	va_list list;
-	int len;
+    va_list list;
+    int len;
 
-	va_start(list, fmt);
-	len = vsnprintf(NULL, 0, fmt, list);
-	va_end(list);
+    va_start(list, fmt);
+    len = vsnprintf(NULL, 0, fmt, list);
+    va_end(list);
 
     if (len == -1) {
         return -1;

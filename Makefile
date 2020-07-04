@@ -28,20 +28,20 @@ libudev.so: ${OBJ}
 	${CC} ${XCFLAGS} -o $@ ${OBJ} ${XLDFLAGS}
 
 install: libudev.so libudev.a
-	mkdir -p 		 ${DESTDIR}${INCLUDEDIR} ${DESTDIR}${LIBDIR}
+	mkdir -p         ${DESTDIR}${INCLUDEDIR} ${DESTDIR}${LIBDIR}
 	cp -f udev.h  	 ${DESTDIR}${INCLUDEDIR}/libudev.h
 	chmod 0644       ${DESTDIR}${INCLUDEDIR}/libudev.h
 	cp -f libudev.a  ${DESTDIR}${LIBDIR}/libudev.a
 	chmod 0644       ${DESTDIR}${LIBDIR}/libudev.a
 	cp -f libudev.so ${DESTDIR}${LIBDIR}/libudev.so
-	chmod 0755 		 ${DESTDIR}${LIBDIR}/libudev.so
+	chmod 0755       ${DESTDIR}${LIBDIR}/libudev.so
 	ln -s libudev.so ${DESTDIR}${LIBDIR}/libudev.so.1
 
 uninstall:
 	rm -f ${DESTDIR}${LIBDIR}/libudev.a \
-		  ${DESTDIR}${LIBDIR}/libudev.so \
-		  ${DESTDIR}${LIBDIR}/libudev.so.1 \
-		  ${DESTDIR}${INCLUDEDIR}/libudev.h
+          ${DESTDIR}${LIBDIR}/libudev.so \
+          ${DESTDIR}${LIBDIR}/libudev.so.1 \
+          ${DESTDIR}${INCLUDEDIR}/libudev.h
 
 clean:
 	rm -f libudev.so libudev.a ${OBJ}

@@ -10,7 +10,7 @@ struct udev
 UDEV_EXPORT struct udev *udev_new(void)
 {
     struct udev *udev;
-    
+
     udev = calloc(1, sizeof(struct udev));
     return udev;
 }
