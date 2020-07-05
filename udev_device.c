@@ -158,7 +158,9 @@ UDEV_EXPORT struct udev_device *udev_device_get_parent_with_subsystem_devtype(st
         return NULL;
     }
 
-    while ((parent = udev_device_get_parent(udev_device))) {
+    parent = udev_device_get_parent(udev_device);
+
+    while (parent) {
         parent_subsystem = udev_device_get_subsystem(parent);
         parent_devtype = udev_device_get_devtype(parent);
 
@@ -171,6 +173,8 @@ UDEV_EXPORT struct udev_device *udev_device_get_parent_with_subsystem_devtype(st
                 return parent;
             }
         }
+
+        parent = udev_device_get_parent(parent);
     }
 
     return NULL;
