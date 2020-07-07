@@ -28,20 +28,12 @@ UDEV_EXPORT int udev_monitor_set_receive_buffer_size(struct udev_monitor *udev_m
 
 UDEV_EXPORT int udev_monitor_get_fd(struct udev_monitor *udev_monitor)
 {
-    if (!udev_monitor) {
-        return -1;
-    }
-
-    return udev_monitor->fd[0];
+    return udev_monitor ? udev_monitor->fd[0] : -1;
 }
 
 UDEV_EXPORT struct udev *udev_monitor_get_udev(struct udev_monitor *udev_monitor)
 {
-    if (!udev_monitor) {
-        return NULL;
-    }
-
-    return udev_monitor->udev;
+    return udev_monitor ? udev_monitor->udev : NULL;
 }
 
 UDEV_EXPORT int udev_monitor_filter_update(struct udev_monitor *udev_monitor)

@@ -17,15 +17,6 @@ struct udev_device
     struct udev_list_entry sysattrs;
     struct udev_device *parent;
     struct udev *udev;
-    char *subsystem;
-    char *syspath;
-    char *sysname;
-    char *devpath;
-    char *devnode;
-    char *devtype;
-    char *driver;
-    char *sysnum;
-    dev_t devnum;
     int refcount;
 };
 
@@ -35,7 +26,7 @@ UDEV_EXPORT const char *udev_device_get_syspath(struct udev_device *udev_device)
         return NULL;
     }
 
-    return udev_device->syspath;
+    return udev_device_get_property_value(udev_device, "SYSPATH");
 }
 
 UDEV_EXPORT const char *udev_device_get_sysname(struct udev_device *udev_device)
@@ -44,7 +35,7 @@ UDEV_EXPORT const char *udev_device_get_sysname(struct udev_device *udev_device)
         return NULL;
     }
 
-    return udev_device->sysname;
+    return udev_device_get_property_value(udev_device, "DEVNAME");
 }
 
 UDEV_EXPORT const char *udev_device_get_sysnum(struct udev_device *udev_device)
@@ -53,7 +44,7 @@ UDEV_EXPORT const char *udev_device_get_sysnum(struct udev_device *udev_device)
         return NULL;
     }
 
-    return udev_device->sysnum;
+    return udev_device_get_property_value(udev_device, "SYSNUM");
 }
 
 UDEV_EXPORT const char *udev_device_get_devpath(struct udev_device *udev_device)
@@ -62,7 +53,7 @@ UDEV_EXPORT const char *udev_device_get_devpath(struct udev_device *udev_device)
         return NULL;
     }
 
-    return udev_device->devpath;
+    return udev_device_get_property_value(udev_device, "DEVPATH");
 }
 
 UDEV_EXPORT const char *udev_device_get_devnode(struct udev_device *udev_device)
@@ -71,16 +62,25 @@ UDEV_EXPORT const char *udev_device_get_devnode(struct udev_device *udev_device)
         return NULL;
     }
 
-    return udev_device->devnode;
+    return udev_device_get_property_value(udev_device, "DEVNODE");
 }
 
 UDEV_EXPORT dev_t udev_device_get_devnum(struct udev_device *udev_device)
 {
+    const char *major, *minor;
+
     if (!udev_device) {
         return makedev(0, 0);
     }
 
-    return udev_device->devnum;
+    major = udev_device_get_property_value(udev_device, "MAJOR");
+    minor = udev_device_get_property_value(udev_device, "MINOR");
+
+    if (!major && !minor) {
+        return makedev(0, 0);
+    }
+
+    return makedev(atoi(major), atoi(minor));
 }
 
 UDEV_EXPORT const char *udev_device_get_devtype(struct udev_device *udev_device)
@@ -89,7 +89,7 @@ UDEV_EXPORT const char *udev_device_get_devtype(struct udev_device *udev_device)
         return NULL;
     }
 
-    return udev_device->devtype;
+    return udev_device_get_property_value(udev_device, "DEVTYPE");
 }
 
 UDEV_EXPORT const char *udev_device_get_subsystem(struct udev_device *udev_device)
@@ -98,7 +98,7 @@ UDEV_EXPORT const char *udev_device_get_subsystem(struct udev_device *udev_devic
         return NULL;
     }
 
-    return udev_device->subsystem;
+    return udev_device_get_property_value(udev_device, "SUBSYSTEM");
 }
 
 UDEV_EXPORT const char *udev_device_get_driver(struct udev_device *udev_device)
@@ -107,16 +107,12 @@ UDEV_EXPORT const char *udev_device_get_driver(struct udev_device *udev_device)
         return NULL;
     }
 
-    return udev_device->driver;
+    return udev_device_get_property_value(udev_device, "DRIVER");
 }
 
 UDEV_EXPORT struct udev *udev_device_get_udev(struct udev_device *udev_device)
 {
-    if (!udev_device) {
-        return NULL;
-    }
-
-    return udev_device->udev;
+    return udev_device ? udev_device->udev : NULL;
 }
 
 UDEV_EXPORT struct udev_device *udev_device_get_parent(struct udev_device *udev_device)
@@ -128,7 +124,7 @@ UDEV_EXPORT struct udev_device *udev_device_get_parent(struct udev_device *udev_
         return NULL;
     }
 
-    path = strdup(udev_device->syspath);
+    path = strdup(udev_device_get_property_value(udev_device, "SYSPATH"));
 
     while (1) {
         slash = strrchr(path, '/') - path;
@@ -204,11 +200,7 @@ UDEV_EXPORT struct udev_list_entry *udev_device_get_devlinks_list_entry(struct u
 
 UDEV_EXPORT struct udev_list_entry *udev_device_get_properties_list_entry(struct udev_device *udev_device)
 {
-    if (!udev_device) {
-        return NULL;
-    }
-
-    return &udev_device->properties;
+    return udev_device ? udev_list_entry_get_next(&udev_device->properties) : NULL;
 }
 
 UDEV_EXPORT struct udev_list_entry *udev_device_get_tags_list_entry(struct udev_device *udev_device)
@@ -219,15 +211,16 @@ UDEV_EXPORT struct udev_list_entry *udev_device_get_tags_list_entry(struct udev_
 
 UDEV_EXPORT struct udev_list_entry *udev_device_get_sysattr_list_entry(struct udev_device *udev_device)
 {
-    if (!udev_device) {
-        return NULL;
-    }
-
-    return &udev_device->sysattrs;
+    return udev_device ? udev_list_entry_get_next(&udev_device->sysattrs) : NULL;
 }
 
 UDEV_EXPORT const char *udev_device_get_property_value(struct udev_device *udev_device, const char *key)
 {
+    struct udev_list_entry *list_entry;
+
+    list_entry = udev_list_entry_get_by_name(&udev_device->properties, key);
+
+    return udev_list_entry_get_value(list_entry); 
 }
 
 UDEV_EXPORT const char *udev_device_get_sysattr_value(struct udev_device *udev_device, const char *sysattr)
@@ -248,7 +241,7 @@ UDEV_EXPORT const char *udev_device_get_sysattr_value(struct udev_device *udev_d
         return udev_list_entry_get_value(list_entry);
     }
 
-    if (xasprintf(path, "%s/%s", udev_device->syspath, sysattr) == -1) {
+    if (xasprintf(path, "%s/%s", udev_device_get_property_value(udev_device, "SYSPATH"), sysattr) == -1) {
         return NULL;
     }
 
@@ -257,7 +250,7 @@ UDEV_EXPORT const char *udev_device_get_sysattr_value(struct udev_device *udev_d
         return NULL;
     }
 
-    fd = open(path, O_RDONLY);
+    fd = open(path, O_RDONLY | O_NOFOLLOW);
 
     if (fd == -1) {
         free(path);
@@ -274,7 +267,7 @@ UDEV_EXPORT const char *udev_device_get_sysattr_value(struct udev_device *udev_d
 
     close(fd);
     free(path);
-    data[len] = '\0';
+    data[len] = '\0'; // XXX strip trailing '\n'
     list_entry = udev_list_entry_add(&udev_device->sysattrs, sysattr, data);
     return udev_list_entry_get_value(list_entry);
 }
@@ -290,7 +283,7 @@ UDEV_EXPORT int udev_device_set_sysattr_value(struct udev_device *udev_device, c
         return -1;
     }
 
-    if (xasprintf(path, "%s/%s", udev_device->syspath, sysattr) == -1) {
+    if (xasprintf(path, "%s/%s", udev_device_get_property_value(udev_device, "SYSPATH"), sysattr) == -1) {
         return -1;
     }
 
@@ -318,41 +311,11 @@ UDEV_EXPORT int udev_device_set_sysattr_value(struct udev_device *udev_device, c
     return 0;
 }
 
-char *udev_device_read_uevent(struct udev_device *udev_device, const char *name)
-{
-    char *line, *path = NULL, *data = NULL;
-    size_t nlen = strlen(name), glen = 0;
-    FILE *file;
-
-    if (xasprintf(path, "%s/%s", udev_device->syspath, "uevent") == -1) {
-        return NULL;
-    }
-
-    file = fopen(path, "r");
-
-    if (!file) {
-        free(path);
-        return NULL;
-    }
-
-    while (getline(&line, &glen, file) != -1) {
-        if (strncmp(line, name, nlen) == 0) {
-            data = strdup(line + nlen);
-            break;
-        }
-    }
-
-    fclose(file);
-    free(line);
-    free(path);
-    return data;
-}
-
-char *udev_device_read_symlink(struct udev_device *udev_device, const char *name)
+const char *udev_device_read_symlink(struct udev_device *udev_device, const char *name)
 {
     char *link, *data, *path = NULL;
 
-    if (xasprintf(path, "%s/%s", udev_device->syspath, name) == -1) {
+    if (xasprintf(path, "%s/%s", udev_device_get_property_value(udev_device, "SYSPATH"), name) == -1) {
         return NULL;
     }
 
@@ -363,142 +326,94 @@ char *udev_device_read_symlink(struct udev_device *udev_device, const char *name
         return NULL;
     }
 
-    data = strdup(strrchr(link, '/') + 1);
+    data = strrchr(link, '/') + 1;
     free(path);
     free(link);
     return data;
 }
 
-void udev_device_set_subsystem(struct udev_device *udev_device)
+void udev_device_set_properties_from_uevent(struct udev_device *udev_device)
 {
-    char *subsystem;
-
-    udev_device->subsystem = NULL;
-
-    subsystem = udev_device_read_symlink(udev_device, "subsystem");
-
-    if (!subsystem) {
-        return;
-    }
-
-    udev_device->subsystem = subsystem;
-}
-
-void udev_device_set_sysname(struct udev_device *udev_device)
-{
-    char *devname, *sysname;
-
-    udev_device->sysname = NULL;
-
-    devname = udev_device_read_uevent(udev_device, "DEVNAME=");
-
-    if (!devname) {
-        return;
-    }
-
-    sysname = strrchr(devname, '/');
-
-    if (!sysname) {
-        sysname = devname;
-    }
-    else {
-        sysname++;
-    }
-
-    udev_device->sysname = strdup(sysname);
-    free(devname);
-}
-
-void udev_device_set_devnode(struct udev_device *udev_device)
-{
-    char *devname, *devnode = NULL;
-
-    udev_device->devnode = NULL;
-
-    devname = udev_device_read_uevent(udev_device, "DEVNAME=");
-
-    if (!devname) {
-        return;
-    }
-
-    if (xasprintf(devnode, "/dev/%s", devname) == -1) {
-        free(devname);
-        return;
-    }
-
-    udev_device->devnode = devnode;
-    free(devname);
-}
-
-void udev_device_set_devtype(struct udev_device *udev_device)
-{
-    char *devtype;
-
-    udev_device->devtype = NULL;
-
-    devtype = udev_device_read_uevent(udev_device, "DEVTYPE=");
-
-    if (!devtype) {
-        return;
-    }
-
-    udev_device->devtype = devtype;
-}
-
-void udev_device_set_driver(struct udev_device *udev_device)
-{
-    char *driver;
-
-    udev_device->driver = NULL;
-
-    driver = udev_device_read_symlink(udev_device, "driver");
-
-    if (!driver) {
-        return;
-    }
-
-    udev_device->driver = driver;
-}
-
-void udev_device_set_devnum(struct udev_device *udev_device)
-{
-    char *major, *minor;
-
-    udev_device->devnum = makedev(0, 0);
-
-    major = udev_device_read_uevent(udev_device, "MAJOR=");
-    minor = udev_device_read_uevent(udev_device, "MINOR=");
-
-    if (!major && !minor) {
-        return;
-    }
-
-    udev_device->devnum = makedev(atoi(major), atoi(minor));
-    free(major);
-    free(minor);
-}
-
-void udev_device_set_sysnum(struct udev_device *udev_device)
-{
+    char *key, *val, *line, *path = NULL;
+    char *sysname, *devnode = NULL; 
+    size_t len = 0;
+    FILE *file;
     int i;
 
-    udev_device->sysnum = NULL;
-
-    if (!udev_device->sysname) {
+    if (xasprintf(path, "%s/uevent", udev_device_get_property_value(udev_device, "SYSPATH")) == -1) {
         return;
     }
 
-    for (i = 0; udev_device->sysname[i] != '\0'; i++) {
-        if (udev_device->sysname[i] >= '0' &&
-            udev_device->sysname[i] <= '9') {
-            udev_device->sysnum = strdup(udev_device->sysname + i);
-            return;
+    file = fopen(path, "r");
+
+    if (!file) {
+        free(path);
+        return;
+    }
+
+    while (getline(&line, &len, file) != -1) {
+        if (strncmp(line, "DEVNAME", 7) == 0) {
+            sysname = strrchr(line + 8, '/');
+
+            if (!sysname) {
+                sysname = line + 8;
+            }
+            else {
+                sysname++;
+            }
+
+            udev_list_entry_add(&udev_device->properties, "DEVNAME", sysname);
+
+            for (i = 0; sysname[i] != '\0'; i++) {
+                if (sysname[i] >= '0' && sysname[i] <= '9') {
+                    udev_list_entry_add(&udev_device->properties, "SYSNUM", sysname + i);
+                    break;
+                }
+            }
+
+            if (xasprintf(devnode, "/dev/%s", line + 8) == -1) {
+                continue;
+            }
+
+            udev_list_entry_add(&udev_device->properties, "DEVNODE", devnode);
+            free(devnode);
+        }
+        else if (strncmp(line, "DEVTYPE", 7) == 0) {
+            udev_list_entry_add(&udev_device->properties, "DEVTYPE", line + 8);
+        }
+        else if (strncmp(line, "DRIVER", 6) == 0) {
+            continue;
+        }
+        else if (strncmp(line, "MAJOR", 5) == 0) {
+            udev_list_entry_add(&udev_device->properties, "MAJOR", line + 6);
+        }
+        else if (strncmp(line, "MINOR", 5) == 0) {
+            udev_list_entry_add(&udev_device->properties, "MINOR", line + 6);
+        }
+        else if (strchr(line, '=')) {
+            val = strchr(line, '=') + 1;
+            key = strdup(line);
+
+            for (i = 0; key[i] != '\0'; i++) {
+                if (key[i] == '=') {
+                    key[i] = '\0';
+                    break;
+                }
+            }
+
+            udev_list_entry_add(&udev_device->properties, key, val);
+            free(key);
         }
     }
+
+    fclose(file);
+    free(line);
+    free(path);
 }
 
-void udev_device_set_properties(struct udev_device *udev_device)
+void udev_device_set_properties_from_ioctl(struct udev_device *udev_device)
 {
+    // TODO extract INPUT properties using libevdev or direct ioctl's(complex), HELP WANTED!
 }
 
 UDEV_EXPORT struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *syspath)
@@ -522,7 +437,7 @@ UDEV_EXPORT struct udev_device *udev_device_new_from_syspath(struct udev *udev, 
         return NULL;
     }
 
-    if (xasprintf(file, "%s/%s", path, "uevent") == -1) {
+    if (xasprintf(file, "%s/uevent", path) == -1) {
         free(path);
         return NULL;
     }
@@ -533,32 +448,30 @@ UDEV_EXPORT struct udev_device *udev_device_new_from_syspath(struct udev *udev, 
         return NULL;
     }
 
-    free(file);
-
     udev_device = calloc(1, sizeof(struct udev_device));
 
     if (!udev_device) {
+        free(file);
         free(path);
         return NULL;
     }
 
     udev_device->udev = udev;
     udev_device->refcount = 1;
-    udev_device->syspath = path;
-    udev_device->devpath = strdup(path + 4);
 
     udev_list_entry_init(&udev_device->properties);
     udev_list_entry_init(&udev_device->sysattrs);
 
-    udev_device_set_properties(udev_device);
-    udev_device_set_subsystem(udev_device);
-    udev_device_set_sysname(udev_device);
-    udev_device_set_devnode(udev_device);
-    udev_device_set_devtype(udev_device);
-    udev_device_set_driver(udev_device);
-    udev_device_set_sysnum(udev_device);
-    udev_device_set_devnum(udev_device);
+    udev_list_entry_add(&udev_device->properties, "SYSPATH", path);
+    udev_list_entry_add(&udev_device->properties, "DEVPATH", path + 4);
+    udev_list_entry_add(&udev_device->properties, "DRIVER", udev_device_read_symlink(udev_device, "driver"));
+    udev_list_entry_add(&udev_device->properties, "SUBSYSTEM", udev_device_read_symlink(udev_device, "subsystem"));
 
+    udev_device_set_properties_from_uevent(udev_device);
+    udev_device_set_properties_from_ioctl(udev_device);
+
+    free(file);
+    free(path);
     return udev_device;
 }
 
@@ -633,15 +546,6 @@ UDEV_EXPORT struct udev_device *udev_device_unref(struct udev_device *udev_devic
     udev_list_entry_free_all(&udev_device->properties);
     udev_list_entry_free_all(&udev_device->sysattrs);
 
-    free(udev_device->subsystem);
-    free(udev_device->syspath);
-    free(udev_device->devpath);
-    free(udev_device->sysname);
-    free(udev_device->devnode);
-    free(udev_device->devtype);
-    free(udev_device->driver);
-    free(udev_device->sysnum);
     free(udev_device);
-
     return NULL;
 }

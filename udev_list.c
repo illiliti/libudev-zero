@@ -20,10 +20,14 @@ void udev_list_entry_free(struct udev_list_entry *list_entry)
 
 void udev_list_entry_free_all(struct udev_list_entry *list_entry)
 {
-    struct udev_list_entry *tmp;
+    struct udev_list_entry *tmp, *tmp2;
 
-    udev_list_entry_foreach(tmp, list_entry) {
-        udev_list_entry_free(tmp);
+    tmp = list_entry;
+
+    while (tmp) {
+        tmp2 = tmp;
+        tmp = tmp->next;
+        udev_list_entry_free(tmp2);
     }
 }
 
@@ -34,6 +38,10 @@ struct udev_list_entry *udev_list_entry_add(struct udev_list_entry *list_entry, 
     old = udev_list_entry_get_by_name(list_entry, name);
 
     if (old) {
+        if (old->value && strcmp(old->value, value) == 0) {
+            return old;
+        }
+
         free(old->value);
         old->value = strdup(value);
         return old;
@@ -58,11 +66,7 @@ struct udev_list_entry *udev_list_entry_add(struct udev_list_entry *list_entry, 
 
 UDEV_EXPORT struct udev_list_entry *udev_list_entry_get_next(struct udev_list_entry *list_entry)
 {
-    if (!list_entry) {
-        return NULL;
-    }
-
-    return list_entry->next;
+    return list_entry ? list_entry->next : NULL;
 }
 
 UDEV_EXPORT struct udev_list_entry *udev_list_entry_get_by_name(struct udev_list_entry *list_entry, const char *name)
@@ -73,10 +77,14 @@ UDEV_EXPORT struct udev_list_entry *udev_list_entry_get_by_name(struct udev_list
         return NULL;
     }
 
-    udev_list_entry_foreach(tmp, list_entry) {
+    tmp = list_entry;
+
+    while (tmp) {
         if (strcmp(tmp->name, name) == 0) {
             return tmp;
         }
+
+        tmp = tmp->next;
     }
 
     return NULL;
@@ -84,18 +92,10 @@ UDEV_EXPORT struct udev_list_entry *udev_list_entry_get_by_name(struct udev_list
 
 UDEV_EXPORT const char *udev_list_entry_get_name(struct udev_list_entry *list_entry)
 {
-    if (!list_entry) {
-        return NULL;
-    }
-
-    return list_entry->name;
+    return list_entry ? list_entry->name : NULL;
 }
 
 UDEV_EXPORT const char *udev_list_entry_get_value(struct udev_list_entry *list_entry)
 {
-    if (!list_entry) {
-        return NULL;
-    }
-
-    return list_entry->value;
+    return list_entry ? list_entry->value : NULL;
 }
