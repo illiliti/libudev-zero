@@ -1,6 +1,8 @@
 .POSIX:
 
 PREFIX = /usr/local
+LIBDIR = ${PREFIX}/lib
+INCLUDEDIR = ${PREFIX}/include
 XCFLAGS = ${CFLAGS} -pedantic -fPIC -fvisibility=hidden \
 		  -D_POSIX_VERSION=200809L -D_XOPEN_SOURCE=700 -std=c99 \
 		  -Wall -Wextra -Wmissing-prototypes -Wstrict-prototypes \
