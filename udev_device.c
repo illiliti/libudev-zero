@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <fnmatch.h>
 #include <sys/stat.h>
 #include <sys/sysmacros.h>
 
@@ -368,9 +369,33 @@ void udev_device_set_properties_from_uevent(struct udev_device *udev_device)
     fclose(file);
 }
 
+// TODO extract INPUT properties using libevdev or direct ioctl's(complex), HELP WANTED!
+// Very very very dirty hack to detect INPUT properties. False positives are guaranteed
 void udev_device_set_properties_from_ioctl(struct udev_device *udev_device)
 {
-    // TODO extract INPUT properties using libevdev or direct ioctl's(complex), HELP WANTED!
+    const char *name;
+
+    if (strcmp(udev_device_get_subsystem(udev_device), "input") != 0) {
+        return;
+    }
+
+    udev_list_entry_add(&udev_device->properties, "ID_INPUT", "1");
+    name = udev_device_get_sysattr_value(udev_device, "name");
+
+    if (!name) {
+        return;
+    }
+
+    // Your mind will be dead after reading this code
+    if (fnmatch("*[Mm][Ou][Uu][Ss][Ee]*", name, 0) == 0) {
+        udev_list_entry_add(&udev_device->properties, "ID_INPUT_MOUSE", "1");
+    }
+    else if (fnmatch("*[Tt][Oo][Uu][Cc][Hh][Pp][Aa][Dd]*", name, 0) == 0) {
+        udev_list_entry_add(&udev_device->properties, "ID_INPUT_TOUCHPAD", "1");
+    }
+    else if (fnmatch("*[Kk][Ee][Yy][Bb][Oo][Aa][Rr][Dd]*", name, 0) == 0) {
+        udev_list_entry_add(&udev_device->properties, "ID_INPUT_KEYBOARD", "1");
+    }
 }
 
 UDEV_EXPORT struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *syspath)
