@@ -32,12 +32,21 @@ UDEV_EXPORT const char *udev_device_get_syspath(struct udev_device *udev_device)
 
 UDEV_EXPORT const char *udev_device_get_sysname(struct udev_device *udev_device)
 {
+    const char *sysname;
+
     if (!udev_device) {
         return NULL;
     }
 
-    // TODO retrieve sysname from DEVPATH if DEVNANE is NULL
-    return udev_device_get_property_value(udev_device, "DEVNAME");
+    if ((sysname = udev_device_get_property_value(udev_device, "DEVNAME"))) {
+        return sysname;
+    }
+
+    if ((sysname = udev_device_get_devpath(udev_device))) {
+        return strrchr(sysname, '/') + 1;
+    }
+
+    return NULL;
 }
 
 UDEV_EXPORT const char *udev_device_get_sysnum(struct udev_device *udev_device)
