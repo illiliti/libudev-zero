@@ -382,9 +382,11 @@ void udev_device_set_properties_from_uevent(struct udev_device *udev_device)
 // Very very very dirty hack to detect INPUT properties. False positives are guaranteed
 void udev_device_set_properties_from_ioctl(struct udev_device *udev_device)
 {
-    const char *name;
+    const char *name, *subsystem;
 
-    if (strcmp(udev_device_get_subsystem(udev_device), "input") != 0) {
+    subsystem = udev_device_get_subsystem(udev_device);
+
+    if (!subsystem || strcmp(subsystem, "input") != 0) {
         return;
     }
 
