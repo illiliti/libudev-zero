@@ -3,12 +3,12 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <sys/stat.h>
 #include <sys/sysmacros.h>
 
 #include "udev.h"
 #include "udev_list.h"
-#include "udev_util.h"
 #include "udev_device.h"
 
 struct udev_device
@@ -35,6 +35,7 @@ UDEV_EXPORT const char *udev_device_get_sysname(struct udev_device *udev_device)
         return NULL;
     }
 
+    // TODO retrieve sysname from DEVPATH if DEVNANE is NULL
     return udev_device_get_property_value(udev_device, "DEVNAME");
 }
 
@@ -117,32 +118,28 @@ UDEV_EXPORT struct udev *udev_device_get_udev(struct udev_device *udev_device)
 
 UDEV_EXPORT struct udev_device *udev_device_get_parent(struct udev_device *udev_device)
 {
-    char *path;
-    int slash;
+    char *tmp, *path;
 
     if (!udev_device) {
         return NULL;
     }
 
-    path = strdup(udev_device_get_property_value(udev_device, "SYSPATH"));
+    path = strdup(udev_device_get_syspath(udev_device));
 
-    while (1) {
-        slash = strrchr(path, '/') - path;
-
-        if (!slash) {
-            free(path);
-            return NULL;
+    do {
+        if ((tmp = strrchr(path, '/'))) {
+            *tmp = '\0';
         }
-
-        path[slash] = '\0';
+        else {
+            break;
+        }
 
         udev_device->parent = udev_device_new_from_syspath(udev_device->udev, path);
-
-        if (udev_device->parent) {
-            free(path);
-            return udev_device->parent;
-        }
     }
+    while (!udev_device->parent);
+
+    free(path);
+    return udev_device->parent;
 }
 
 UDEV_EXPORT struct udev_device *udev_device_get_parent_with_subsystem_devtype(struct udev_device *udev_device, const char *subsystem, const char *devtype)
@@ -219,16 +216,14 @@ UDEV_EXPORT const char *udev_device_get_property_value(struct udev_device *udev_
     struct udev_list_entry *list_entry;
 
     list_entry = udev_list_entry_get_by_name(&udev_device->properties, key);
-
     return udev_list_entry_get_value(list_entry); 
 }
 
 UDEV_EXPORT const char *udev_device_get_sysattr_value(struct udev_device *udev_device, const char *sysattr)
 {
     struct udev_list_entry *list_entry;
-    char data[1024], *path = NULL;
+    char data[1024], path[PATH_MAX];
     struct stat st;
-    ssize_t len;
     int fd;
 
     if (!udev_device || !sysattr) {
@@ -241,41 +236,32 @@ UDEV_EXPORT const char *udev_device_get_sysattr_value(struct udev_device *udev_d
         return udev_list_entry_get_value(list_entry);
     }
 
-    if (xasprintf(path, "%s/%s", udev_device_get_property_value(udev_device, "SYSPATH"), sysattr) == -1) {
-        return NULL;
-    }
+    snprintf(path, sizeof(path), "%s/%s", udev_device_get_syspath(udev_device), sysattr);
 
     if (stat(path, &st) != 0 || S_ISDIR(st.st_mode)) {
-        free(path);
         return NULL;
     }
 
     fd = open(path, O_RDONLY | O_NOFOLLOW);
 
     if (fd == -1) {
-        free(path);
         return NULL;
     }
 
-    len = read(fd, data, sizeof(data));
-
-    if (len == -1) {
+    if (read(fd, data, sizeof(data)) == -1) {
         close(fd);
-        free(path);
         return NULL;
     }
 
     close(fd);
-    free(path);
-    data[len] = '\0'; // XXX strip trailing '\n'
+    data[strcspn(data, "\n")] = '\0';
     list_entry = udev_list_entry_add(&udev_device->sysattrs, sysattr, data);
     return udev_list_entry_get_value(list_entry);
 }
 
 UDEV_EXPORT int udev_device_set_sysattr_value(struct udev_device *udev_device, const char *sysattr, const char *value)
 {
-    size_t len = strlen(value);
-    char *path = NULL;
+    char path[PATH_MAX];
     struct stat st;
     int fd;
 
@@ -283,75 +269,59 @@ UDEV_EXPORT int udev_device_set_sysattr_value(struct udev_device *udev_device, c
         return -1;
     }
 
-    if (xasprintf(path, "%s/%s", udev_device_get_property_value(udev_device, "SYSPATH"), sysattr) == -1) {
-        return -1;
-    }
+    snprintf(path, sizeof(path), "%s/%s", udev_device_get_syspath(udev_device), sysattr);
 
     if (stat(path, &st) != 0 || S_ISDIR(st.st_mode)) {
-        free(path);
         return -1;
     }
 
     fd = open(path, O_WRONLY | O_NOFOLLOW);
 
     if (fd == -1) {
-        free(path);
         return -1;
     }
 
-    if (write(fd, value, len) == -1) {
+    if (write(fd, value, strlen(value)) == -1) {
         close(fd);
-        free(path);
         return -1;
     }
 
     close(fd);
-    free(path);
     udev_list_entry_add(&udev_device->sysattrs, sysattr, value);
     return 0;
 }
 
 const char *udev_device_read_symlink(struct udev_device *udev_device, const char *name)
 {
-    char *link, *data, *path = NULL;
+    char link[PATH_MAX], path[PATH_MAX];
 
-    if (xasprintf(path, "%s/%s", udev_device_get_property_value(udev_device, "SYSPATH"), name) == -1) {
+    snprintf(path, sizeof(path), "%s/%s", udev_device_get_syspath(udev_device), name);
+
+    if (!realpath(path, link)) {
         return NULL;
     }
 
-    link = realpath(path, NULL); // XXX XSI
-
-    if (!link) {
-        free(path);
-        return NULL;
-    }
-
-    data = strrchr(link, '/') + 1;
-    free(path);
-    free(link);
-    return data;
+    return strrchr(link, '/') + 1;
 }
 
 void udev_device_set_properties_from_uevent(struct udev_device *udev_device)
 {
-    char *key, *val, *line, *path = NULL;
-    char *sysname, *devnode = NULL; 
-    size_t len = 0;
+    char *key, *val, line[1024], path[PATH_MAX];
+    char *sysname, devnode[PATH_MAX];
     FILE *file;
     int i;
 
-    if (xasprintf(path, "%s/uevent", udev_device_get_property_value(udev_device, "SYSPATH")) == -1) {
-        return;
-    }
+    snprintf(path, sizeof(path), "%s/uevent", udev_device_get_syspath(udev_device));
 
     file = fopen(path, "r");
 
     if (!file) {
-        free(path);
         return;
     }
 
-    while (getline(&line, &len, file) != -1) {
+    while (fgets(line, sizeof(line), file)) {
+        line[strcspn(line, "\n")] = '\0';
+
         if (strncmp(line, "DEVNAME", 7) == 0) {
             sysname = strrchr(line + 8, '/');
 
@@ -371,12 +341,8 @@ void udev_device_set_properties_from_uevent(struct udev_device *udev_device)
                 }
             }
 
-            if (xasprintf(devnode, "/dev/%s", line + 8) == -1) {
-                continue;
-            }
-
+            snprintf(devnode, sizeof(devnode), "/dev/%s", line + 8);
             udev_list_entry_add(&udev_device->properties, "DEVNODE", devnode);
-            free(devnode);
         }
         else if (strncmp(line, "DEVTYPE", 7) == 0) {
             udev_list_entry_add(&udev_device->properties, "DEVTYPE", line + 8);
@@ -392,23 +358,14 @@ void udev_device_set_properties_from_uevent(struct udev_device *udev_device)
         }
         else if (strchr(line, '=')) {
             val = strchr(line, '=') + 1;
-            key = strdup(line);
-
-            for (i = 0; key[i] != '\0'; i++) {
-                if (key[i] == '=') {
-                    key[i] = '\0';
-                    break;
-                }
-            }
+            key = line;
+            key[strcspn(key, "=")] = '\0';
 
             udev_list_entry_add(&udev_device->properties, key, val);
-            free(key);
         }
     }
 
     fclose(file);
-    free(line);
-    free(path);
 }
 
 void udev_device_set_properties_from_ioctl(struct udev_device *udev_device)
@@ -418,46 +375,37 @@ void udev_device_set_properties_from_ioctl(struct udev_device *udev_device)
 
 UDEV_EXPORT struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *syspath)
 {
+    char path[PATH_MAX], file[PATH_MAX];
     struct udev_device *udev_device;
-    char *path, *file = NULL;
     struct stat st;
 
     if (!udev || !syspath) {
         return NULL;
     }
 
-    path = realpath(syspath, NULL); // XXX XSI
-
-    if (!path) {
+    if (!realpath(syspath, path)) {
         return NULL;
     }
 
     if (stat(path, &st) != 0 || S_ISDIR(st.st_mode) == 0) {
-        free(path);
         return NULL;
     }
 
-    if (xasprintf(file, "%s/uevent", path) == -1) {
-        free(path);
-        return NULL;
-    }
+    snprintf(file, sizeof(file), "%s/uevent", path);
 
     if (access(file, R_OK) == -1) {
-        free(file);
-        free(path);
         return NULL;
     }
 
     udev_device = calloc(1, sizeof(struct udev_device));
 
     if (!udev_device) {
-        free(file);
-        free(path);
         return NULL;
     }
 
     udev_device->udev = udev;
     udev_device->refcount = 1;
+    udev_device->parent = NULL;
 
     udev_list_entry_init(&udev_device->properties);
     udev_list_entry_init(&udev_device->sysattrs);
@@ -470,15 +418,12 @@ UDEV_EXPORT struct udev_device *udev_device_new_from_syspath(struct udev *udev, 
     udev_device_set_properties_from_uevent(udev_device);
     udev_device_set_properties_from_ioctl(udev_device);
 
-    free(file);
-    free(path);
     return udev_device;
 }
 
 UDEV_EXPORT struct udev_device *udev_device_new_from_devnum(struct udev *udev, char type, dev_t devnum)
 {
-    struct udev_device *udev_device;
-    char *path = NULL;
+    char path[PATH_MAX];
 
     if (!udev || !type || !devnum) {
         return NULL;
@@ -486,19 +431,16 @@ UDEV_EXPORT struct udev_device *udev_device_new_from_devnum(struct udev *udev, c
 
     switch (type) {
         case 'c':
-            xasprintf(path, "/sys/dev/char/%d:%d", major(devnum), minor(devnum));
+            snprintf(path, sizeof(path), "/sys/dev/char/%d:%d", major(devnum), minor(devnum));
             break;
         case 'b':
-            xasprintf(path, "/sys/dev/block/%d:%d", major(devnum), minor(devnum));
+            snprintf(path, sizeof(path), "/sys/dev/block/%d:%d", major(devnum), minor(devnum));
             break;
         default:
             return NULL;
     }
 
-    udev_device = udev_device_new_from_syspath(udev, path);
-
-    free(path);
-    return udev_device;
+    return udev_device_new_from_syspath(udev, path);
 }
 
 UDEV_EXPORT struct udev_device *udev_device_new_from_subsystem_sysname(struct udev *udev, const char *subsystem, const char *sysname)

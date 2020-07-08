@@ -1,4 +1,4 @@
-# .POSIX ??
+.POSIX:
 
 PREFIX = /usr/local
 XCFLAGS = ${CFLAGS} -pedantic -fPIC -fvisibility=hidden \
@@ -11,7 +11,6 @@ XARFLAGS = -rc
 OBJ = \
 	udev.o \
 	udev_list.o \
-	udev_util.o \
 	udev_device.o \
 	udev_monitor.o \
 	udev_enumerate.o

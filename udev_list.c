@@ -22,7 +22,7 @@ void udev_list_entry_free_all(struct udev_list_entry *list_entry)
 {
     struct udev_list_entry *tmp, *tmp2;
 
-    tmp = list_entry;
+    tmp = list_entry->next;
 
     while (tmp) {
         tmp2 = tmp;
@@ -77,7 +77,7 @@ UDEV_EXPORT struct udev_list_entry *udev_list_entry_get_by_name(struct udev_list
         return NULL;
     }
 
-    tmp = list_entry;
+    tmp = list_entry->next;
 
     while (tmp) {
         if (strcmp(tmp->name, name) == 0) {

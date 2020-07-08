@@ -1,13 +1,14 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <dirent.h>
 #include <string.h>
+#include <limits.h>
 #include <fnmatch.h>
 #include <sys/stat.h>
 #include <sys/sysmacros.h>
 
 #include "udev.h"
 #include "udev_list.h"
-#include "udev_util.h"
 #include "udev_enumerate.h"
 
 struct udev_enumerate
@@ -253,7 +254,6 @@ void udev_enumerate_add_device(struct udev_enumerate *udev_enumerate, const char
         return;
     }
 
-    // TODO double check if logic is correct
     if (!udev_enumerate_filter_subsystem(udev_enumerate, udev_device) ||
         !udev_enumerate_filter_sysname(udev_enumerate, udev_device) ||
         !udev_enumerate_filter_property(udev_enumerate, udev_device) ||
@@ -268,7 +268,7 @@ void udev_enumerate_add_device(struct udev_enumerate *udev_enumerate, const char
 
 void udev_enumerate_scan_dir(struct udev_enumerate *udev_enumerate, const char *path)
 {
-    char *file = NULL;
+    char file[PATH_MAX];
     struct dirent *de;
     struct stat st;
     DIR *dp;
@@ -285,10 +285,7 @@ void udev_enumerate_scan_dir(struct udev_enumerate *udev_enumerate, const char *
             continue;
         }
 
-        if (xasprintf(file, "%s/%s", path, de->d_name) == -1) {
-            closedir(dp);
-            return;
-        }
+        snprintf(file, sizeof(file), "%s/%s", path, de->d_name);
 
         if (lstat(file, &st) != 0 || S_ISLNK(st.st_mode)) {
             continue;
@@ -297,15 +294,14 @@ void udev_enumerate_scan_dir(struct udev_enumerate *udev_enumerate, const char *
             udev_enumerate_scan_dir(udev_enumerate, file);
         }
         else if (S_ISBLK(st.st_mode)) {
-            udev_enumerate_add_device(udev_enumerate, 'c', st.st_dev);
+            udev_enumerate_add_device(udev_enumerate, 'b', st.st_rdev);
         }
         else if (S_ISCHR(st.st_mode)) {
-            udev_enumerate_add_device(udev_enumerate, 'b', st.st_dev);
+            udev_enumerate_add_device(udev_enumerate, 'c', st.st_rdev);
         }
     }
 
     closedir(dp);
-    free(file);
 }
 
 UDEV_EXPORT int udev_enumerate_scan_devices(struct udev_enumerate *udev_enumerate)
