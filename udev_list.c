@@ -43,7 +43,7 @@ struct udev_list_entry *udev_list_entry_add(struct udev_list_entry *list_entry, 
         }
 
         free(old->value);
-        old->value = strdup(value);
+        old->value = value ? strdup(value) : NULL;
         return old;
     }
 
