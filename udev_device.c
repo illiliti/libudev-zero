@@ -383,6 +383,7 @@ void udev_device_set_properties_from_uevent(struct udev_device *udev_device)
 void udev_device_set_properties_from_ioctl(struct udev_device *udev_device)
 {
     const char *name, *subsystem;
+    struct udev_device *parent;
 
     subsystem = udev_device_get_subsystem(udev_device);
 
@@ -394,7 +395,12 @@ void udev_device_set_properties_from_ioctl(struct udev_device *udev_device)
     name = udev_device_get_sysattr_value(udev_device, "name");
 
     if (!name) {
-        return;
+        parent = udev_device_get_parent(udev_device);
+        name = udev_device_get_sysattr_value(parent, "name");
+
+        if (!name) {
+            return;
+        }
     }
 
     // Your mind will be dead after reading this code
