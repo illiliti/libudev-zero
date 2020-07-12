@@ -4,8 +4,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <limits.h>
-#include <fnmatch.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
+#include <linux/input.h>
 #include <sys/sysmacros.h>
 
 #include "udev.h"
@@ -378,12 +379,16 @@ void udev_device_set_properties_from_uevent(struct udev_device *udev_device)
     fclose(file);
 }
 
-// TODO extract INPUT properties using libevdev or direct ioctl's(complex), HELP WANTED!
-// Very very very dirty hack to detect INPUT properties. False positives are guaranteed
+int test_bit(unsigned long int arr[], int bit)
+{
+    return arr[bit / LONG_BIT] & (1 << (bit % LONG_BIT));
+}
+
 void udev_device_set_properties_from_ioctl(struct udev_device *udev_device)
 {
-    const char *name, *subsystem;
-    struct udev_device *parent;
+    unsigned long int bits[96], key_bits[96], rel_bits[96], abs_bits[96];
+    const char *subsystem;
+    int fd;
 
     subsystem = udev_device_get_subsystem(udev_device);
 
@@ -392,27 +397,44 @@ void udev_device_set_properties_from_ioctl(struct udev_device *udev_device)
     }
 
     udev_list_entry_add(&udev_device->properties, "ID_INPUT", "1");
-    name = udev_device_get_sysattr_value(udev_device, "name");
 
-    if (!name) {
-        parent = udev_device_get_parent(udev_device);
-        name = udev_device_get_sysattr_value(parent, "name");
+    fd = open(udev_device_get_devnode(udev_device), O_RDONLY);
 
-        if (!name) {
-            return;
+    if (fd == -1) {
+        return;
+    }
+
+    if (ioctl(fd, EVIOCGBIT(0, sizeof(bits)), &bits) == -1 ||
+        ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(key_bits)), &key_bits) == -1 ||
+        ioctl(fd, EVIOCGBIT(EV_REL, sizeof(rel_bits)), &rel_bits) == -1 ||
+        ioctl(fd, EVIOCGBIT(EV_ABS, sizeof(abs_bits)), &abs_bits) == -1) {
+        return;
+    }
+
+    if (test_bit(bits, EV_SW)) {
+        udev_list_entry_add(&udev_device->properties, "ID_INPUT_SWITCH", "1");
+    }
+
+    if (test_bit(bits, EV_KEY) && test_bit(key_bits, KEY_ENTER)) {
+        udev_list_entry_add(&udev_device->properties, "ID_INPUT_KEY", "1");
+        udev_list_entry_add(&udev_device->properties, "ID_INPUT_KEYBOARD", "1");
+    }
+
+    if (test_bit(bits, EV_REL) && test_bit(rel_bits, REL_Y) && test_bit(rel_bits, REL_X) &&
+        test_bit(key_bits, BTN_MOUSE)) {
+        udev_list_entry_add(&udev_device->properties, "ID_INPUT_MOUSE", "1");
+    }
+
+    if (test_bit(bits, EV_ABS) && test_bit(abs_bits, ABS_Y) && test_bit(abs_bits, ABS_X)) {
+        if (test_bit(key_bits, BTN_TOOL_FINGER) && !test_bit(key_bits, BTN_TOOL_PEN)) {
+            udev_list_entry_add(&udev_device->properties, "ID_INPUT_TOUCHPAD", "1");
+        }
+        else if (test_bit(key_bits, BTN_MOUSE)) {
+            udev_list_entry_add(&udev_device->properties, "ID_INPUT_MOUSE", "1");
         }
     }
 
-    // Your mind will be dead after reading this code
-    if (fnmatch("*[Mm][Ou][Uu][Ss][Ee]*", name, 0) == 0) {
-        udev_list_entry_add(&udev_device->properties, "ID_INPUT_MOUSE", "1");
-    }
-    else if (fnmatch("*[Tt][Oo][Uu][Cc][Hh][Pp][Aa][Dd]*", name, 0) == 0) {
-        udev_list_entry_add(&udev_device->properties, "ID_INPUT_TOUCHPAD", "1");
-    }
-    else if (fnmatch("*[Kk][Ee][Yy][Bb][Oo][Aa][Rr][Dd]*", name, 0) == 0) {
-        udev_list_entry_add(&udev_device->properties, "ID_INPUT_KEYBOARD", "1");
-    }
+    close(fd);
 }
 
 UDEV_EXPORT struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *syspath)
