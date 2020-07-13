@@ -403,10 +403,10 @@ static void udev_device_set_properties_from_ioctl(struct udev_device *udev_devic
         return;
     }
 
-    if (ioctl(fd, EVIOCGBIT(0, sizeof(bits)), &bits) == -1 ||
-        ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(key_bits)), &key_bits) == -1 ||
-        ioctl(fd, EVIOCGBIT(EV_REL, sizeof(rel_bits)), &rel_bits) == -1 ||
-        ioctl(fd, EVIOCGBIT(EV_ABS, sizeof(abs_bits)), &abs_bits) == -1) {
+    if (ioctl(fd, (int)EVIOCGBIT(0, sizeof(bits)), &bits) == -1 ||
+        ioctl(fd, (int)EVIOCGBIT(EV_KEY, sizeof(key_bits)), &key_bits) == -1 ||
+        ioctl(fd, (int)EVIOCGBIT(EV_REL, sizeof(rel_bits)), &rel_bits) == -1 ||
+        ioctl(fd, (int)EVIOCGBIT(EV_ABS, sizeof(abs_bits)), &abs_bits) == -1) {
         close(fd);
         return;
     }
@@ -444,7 +444,7 @@ static void udev_device_set_properties_from_ioctl(struct udev_device *udev_devic
 
 UDEV_EXPORT struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *syspath)
 {
-    char path[PATH_MAX], file[PATH_MAX];
+    char path[PATH_MAX], file[PATH_MAX + 7];
     struct udev_device *udev_device;
     struct stat st;
 
