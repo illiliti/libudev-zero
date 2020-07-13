@@ -5,7 +5,6 @@
 #include <limits.h>
 #include <fnmatch.h>
 #include <sys/stat.h>
-#include <sys/sysmacros.h>
 
 #include "udev.h"
 #include "udev_list.h"
