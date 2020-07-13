@@ -408,6 +408,7 @@ void udev_device_set_properties_from_ioctl(struct udev_device *udev_device)
         ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(key_bits)), &key_bits) == -1 ||
         ioctl(fd, EVIOCGBIT(EV_REL, sizeof(rel_bits)), &rel_bits) == -1 ||
         ioctl(fd, EVIOCGBIT(EV_ABS, sizeof(abs_bits)), &abs_bits) == -1) {
+        close(fd);
         return;
     }
 
