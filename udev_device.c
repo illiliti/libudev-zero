@@ -427,8 +427,13 @@ void udev_device_set_properties_from_ioctl(struct udev_device *udev_device)
     }
 
     if (test_bit(bits, EV_ABS) && test_bit(abs_bits, ABS_Y) && test_bit(abs_bits, ABS_X)) {
-        if (test_bit(key_bits, BTN_TOOL_FINGER) && !test_bit(key_bits, BTN_TOOL_PEN)) {
-            udev_list_entry_add(&udev_device->properties, "ID_INPUT_TOUCHPAD", "1");
+        if (test_bit(key_bits, BTN_TOUCH) && !test_bit(key_bits, BTN_TOOL_PEN)) {
+            if (test_bit(key_bits, BTN_TOOL_FINGER)) {
+                udev_list_entry_add(&udev_device->properties, "ID_INPUT_TOUCHPAD", "1");
+            }
+            else {
+                udev_list_entry_add(&udev_device->properties, "ID_INPUT_TOUCHSCREEN", "1");
+            }
         }
         else if (test_bit(key_bits, BTN_MOUSE)) {
             udev_list_entry_add(&udev_device->properties, "ID_INPUT_MOUSE", "1");
