@@ -9,7 +9,6 @@
 
 #include "udev.h"
 #include "udev_list.h"
-#include "udev_enumerate.h"
 
 struct udev_enumerate
 {
@@ -95,7 +94,7 @@ UDEV_EXPORT int udev_enumerate_add_match_is_initialized(struct udev_enumerate *u
     return 0;
 }
 
-int udev_enumerate_filter_subsystem(struct udev_enumerate *udev_enumerate, struct udev_device *udev_device)
+static int udev_enumerate_filter_subsystem(struct udev_enumerate *udev_enumerate, struct udev_device *udev_device)
 {
     struct udev_list_entry *list_entry;
     const char *subsystem;
@@ -132,7 +131,7 @@ int udev_enumerate_filter_subsystem(struct udev_enumerate *udev_enumerate, struc
     return 1;
 }
 
-int udev_enumerate_filter_sysname(struct udev_enumerate *udev_enumerate, struct udev_device *udev_device)
+static int udev_enumerate_filter_sysname(struct udev_enumerate *udev_enumerate, struct udev_device *udev_device)
 {
     struct udev_list_entry *list_entry;
     const char *sysname;
@@ -155,7 +154,7 @@ int udev_enumerate_filter_sysname(struct udev_enumerate *udev_enumerate, struct 
     return 0;
 }
 
-int udev_enumerate_filter_property(struct udev_enumerate *udev_enumerate, struct udev_device *udev_device)
+static int udev_enumerate_filter_property(struct udev_enumerate *udev_enumerate, struct udev_device *udev_device)
 {
     const char *property, *property2, *value, *value2;
     struct udev_list_entry *list_entry, *list_entry2;
@@ -198,7 +197,7 @@ int udev_enumerate_filter_property(struct udev_enumerate *udev_enumerate, struct
     return 0;
 }
 
-int udev_enumerate_filter_sysattr(struct udev_enumerate *udev_enumerate, struct udev_device *udev_device)
+static int udev_enumerate_filter_sysattr(struct udev_enumerate *udev_enumerate, struct udev_device *udev_device)
 {
     struct udev_list_entry *list_entry;
     const char *sysattr, *value;
@@ -244,7 +243,7 @@ int udev_enumerate_filter_sysattr(struct udev_enumerate *udev_enumerate, struct 
     return 1;
 }
 
-void udev_enumerate_add_device(struct udev_enumerate *udev_enumerate, const char type, dev_t devnum)
+static void udev_enumerate_add_device(struct udev_enumerate *udev_enumerate, const char type, dev_t devnum)
 {
     struct udev_device *udev_device;
 
@@ -266,7 +265,7 @@ void udev_enumerate_add_device(struct udev_enumerate *udev_enumerate, const char
     udev_device_unref(udev_device);
 }
 
-void udev_enumerate_scan_dir(struct udev_enumerate *udev_enumerate, const char *path)
+static void udev_enumerate_scan_dir(struct udev_enumerate *udev_enumerate, const char *path)
 {
     char file[PATH_MAX];
     struct dirent *de;

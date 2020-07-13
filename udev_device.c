@@ -11,7 +11,6 @@
 
 #include "udev.h"
 #include "udev_list.h"
-#include "udev_device.h"
 
 struct udev_device
 {
@@ -302,7 +301,7 @@ UDEV_EXPORT int udev_device_set_sysattr_value(struct udev_device *udev_device, c
     return 0;
 }
 
-const char *udev_device_read_symlink(struct udev_device *udev_device, const char *name)
+static const char *udev_device_read_symlink(struct udev_device *udev_device, const char *name)
 {
     char link[PATH_MAX], path[PATH_MAX];
 
@@ -315,7 +314,7 @@ const char *udev_device_read_symlink(struct udev_device *udev_device, const char
     return strrchr(link, '/') + 1;
 }
 
-void udev_device_set_properties_from_uevent(struct udev_device *udev_device)
+static void udev_device_set_properties_from_uevent(struct udev_device *udev_device)
 {
     char *key, *val, line[1024], path[PATH_MAX];
     char *sysname, devnode[PATH_MAX];
@@ -379,12 +378,12 @@ void udev_device_set_properties_from_uevent(struct udev_device *udev_device)
     fclose(file);
 }
 
-int test_bit(unsigned long int arr[], int bit)
+static int test_bit(unsigned long int arr[], int bit)
 {
     return arr[bit / LONG_BIT] & (1 << (bit % LONG_BIT));
 }
 
-void udev_device_set_properties_from_ioctl(struct udev_device *udev_device)
+static void udev_device_set_properties_from_ioctl(struct udev_device *udev_device)
 {
     unsigned long int bits[96], key_bits[96], rel_bits[96], abs_bits[96];
     const char *subsystem;
