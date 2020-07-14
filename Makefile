@@ -3,19 +3,19 @@
 PREFIX = /usr/local
 LIBDIR = ${PREFIX}/lib
 INCLUDEDIR = ${PREFIX}/include
-XCFLAGS = ${CFLAGS} -pedantic -fPIC -fvisibility=hidden \
-		  -D_POSIX_VERSION=200809L -D_XOPEN_SOURCE=700 -std=c99 \
-		  -Wall -Wextra -Wmissing-prototypes -Wstrict-prototypes \
-		  -Wno-return-type -Wno-unused-parameter
+XCFLAGS = ${CFLAGS} -std=c99 -fPIC -fvisibility=hidden \
+		  -D_POSIX_VERSION=200809L -D_XOPEN_SOURCE=700 \
+		  -Wall -Wextra -Wpedantic -Wmissing-prototypes \
+		  -Wstrict-prototypes -Wno-unused-parameter
 XLDFLAGS = ${LDFLAGS} -shared -Wl,-soname,libudev.so.1
 XARFLAGS = -rc
 
 OBJ = \
-	udev.o \
-	udev_list.o \
-	udev_device.o \
-	udev_monitor.o \
-	udev_enumerate.o
+	  udev.o \
+	  udev_list.o \
+	  udev_device.o \
+	  udev_monitor.o \
+	  udev_enumerate.o
 
 all: libudev.so libudev.a libudev.pc
 
