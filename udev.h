@@ -5,11 +5,8 @@ extern "C" {
 #endif
 
 #define UDEV_EXPORT __attribute__ ((visibility("default")))
-
 #define udev_list_entry_foreach(list_entry, first_entry) \
-    for (list_entry = first_entry; \
-         list_entry != NULL; \
-         list_entry = udev_list_entry_get_next(list_entry))
+    for (list_entry = first_entry; list_entry; list_entry = udev_list_entry_get_next(list_entry))
 
 struct udev;
 struct udev_device;
