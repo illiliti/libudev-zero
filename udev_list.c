@@ -53,8 +53,6 @@ struct udev_list_entry *udev_list_entry_add(struct udev_list_entry *list_entry, 
         return NULL;
     }
 
-    udev_list_entry_init(new);
-
     new->value = value ? strdup(value) : NULL;
     new->name = strdup(name);
 
@@ -77,10 +75,10 @@ UDEV_EXPORT struct udev_list_entry *udev_list_entry_get_by_name(struct udev_list
         return NULL;
     }
 
-    tmp = list_entry->next;
+    tmp = list_entry;
 
     while (tmp) {
-        if (strcmp(tmp->name, name) == 0) {
+        if (tmp->name && strcmp(tmp->name, name) == 0) {
             return tmp;
         }
 
