@@ -1,7 +1,7 @@
 libudev-zero
 ============
 
-Drop-in replacement for libudev intented to work without daemon
+Drop-in replacement for libudev intended to work without daemon
 
 What Works
 ----------
