@@ -9,6 +9,7 @@ extern "C" {
     for (list_entry = first_entry; list_entry; list_entry = udev_list_entry_get_next(list_entry))
 
 struct udev;
+struct udev_hwdb;
 struct udev_device;
 struct udev_monitor;
 struct udev_enumerate;
@@ -89,6 +90,11 @@ int udev_monitor_filter_add_match_tag(struct udev_monitor *udev_monitor, const c
 struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char *name);
 struct udev_monitor *udev_monitor_ref(struct udev_monitor *udev_monitor);
 struct udev_monitor *udev_monitor_unref(struct udev_monitor *udev_monitor);
+
+struct udev_hwdb *udev_hwdb_new(struct udev *udev);
+struct udev_hwdb *udev_hwdb_ref(struct udev_hwdb *hwdb);
+struct udev_hwdb *udev_hwdb_unref(struct udev_hwdb *hwdb);
+struct udev_list_entry *udev_hwdb_get_properties_list_entry(struct udev_hwdb *hwdb, const char *modalias, unsigned int flags);
 
 #ifdef __cplusplus
 }
