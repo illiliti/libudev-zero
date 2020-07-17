@@ -9,6 +9,7 @@ What Works
 * [x] libinput
 * [ ] wlroots - partially works. someone reported that mouse doesn't work
 * [ ] weston - should work. need test
+* [ ] libusb - broken completely
 * [ ] kwin - fails to compile for odd reason
 * [ ] ???
 
