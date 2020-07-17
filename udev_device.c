@@ -12,8 +12,7 @@
 #include "udev.h"
 #include "udev_list.h"
 
-struct udev_device
-{
+struct udev_device {
     struct udev_list_entry properties;
     struct udev_list_entry sysattrs;
     struct udev_device *parent;

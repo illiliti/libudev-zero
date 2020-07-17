@@ -1,5 +1,4 @@
-struct udev_list_entry
-{
+struct udev_list_entry {
     struct udev_list_entry *next;
     char *value;
     char *name;

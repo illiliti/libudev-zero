@@ -2,8 +2,7 @@
 
 #include "udev.h"
 
-struct udev
-{
+struct udev {
     int refcount;
 };
 

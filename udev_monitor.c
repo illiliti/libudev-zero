@@ -4,8 +4,7 @@
 
 #include "udev.h"
 
-struct udev_monitor
-{
+struct udev_monitor {
     struct udev *udev;
     int refcount;
     int fd[2];

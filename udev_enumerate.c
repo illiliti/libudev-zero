@@ -9,8 +9,7 @@
 #include "udev.h"
 #include "udev_list.h"
 
-struct udev_enumerate
-{
+struct udev_enumerate {
     struct udev_list_entry subsystem_nomatch;
     struct udev_list_entry subsystem_match;
     struct udev_list_entry sysattr_nomatch;
