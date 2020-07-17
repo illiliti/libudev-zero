@@ -525,7 +525,7 @@ UDEV_EXPORT struct udev_device *udev_device_new_from_subsystem_sysname(struct ud
     for (i = 0; fmt[i]; i++) {
         snprintf(path, sizeof(path), fmt[i], subsystem, sysname);
 
-        if (access(path, R_OK)) {
+        if (access(path, R_OK) == 0) {
             return udev_device_new_from_syspath(udev, path);
         }
     }
