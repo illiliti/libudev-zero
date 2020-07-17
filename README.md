@@ -7,7 +7,7 @@ What Works
 ----------
 * [x] xorg-server
 * [x] libinput
-* [ ] wlroots - partially works. someone reported that mouse doesn't work
+* [x] wlroots
 * [ ] weston - should work. need test
 * [ ] libusb - broken completely
 * [ ] kwin - fails to compile for odd reason
