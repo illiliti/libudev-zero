@@ -62,12 +62,12 @@ struct udev_list_entry *udev_list_entry_add(struct udev_list_entry *list_entry, 
     return new;
 }
 
-UDEV_EXPORT struct udev_list_entry *udev_list_entry_get_next(struct udev_list_entry *list_entry)
+struct udev_list_entry *udev_list_entry_get_next(struct udev_list_entry *list_entry)
 {
     return list_entry ? list_entry->next : NULL;
 }
 
-UDEV_EXPORT struct udev_list_entry *udev_list_entry_get_by_name(struct udev_list_entry *list_entry, const char *name)
+struct udev_list_entry *udev_list_entry_get_by_name(struct udev_list_entry *list_entry, const char *name)
 {
     struct udev_list_entry *tmp;
 
@@ -88,12 +88,12 @@ UDEV_EXPORT struct udev_list_entry *udev_list_entry_get_by_name(struct udev_list
     return NULL;
 }
 
-UDEV_EXPORT const char *udev_list_entry_get_name(struct udev_list_entry *list_entry)
+const char *udev_list_entry_get_name(struct udev_list_entry *list_entry)
 {
     return list_entry ? list_entry->name : NULL;
 }
 
-UDEV_EXPORT const char *udev_list_entry_get_value(struct udev_list_entry *list_entry)
+const char *udev_list_entry_get_value(struct udev_list_entry *list_entry)
 {
     return list_entry ? list_entry->value : NULL;
 }

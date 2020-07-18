@@ -20,7 +20,7 @@ struct udev_device {
     int refcount;
 };
 
-UDEV_EXPORT const char *udev_device_get_syspath(struct udev_device *udev_device)
+const char *udev_device_get_syspath(struct udev_device *udev_device)
 {
     if (!udev_device) {
         return NULL;
@@ -29,7 +29,7 @@ UDEV_EXPORT const char *udev_device_get_syspath(struct udev_device *udev_device)
     return udev_device_get_property_value(udev_device, "SYSPATH");
 }
 
-UDEV_EXPORT const char *udev_device_get_sysname(struct udev_device *udev_device)
+const char *udev_device_get_sysname(struct udev_device *udev_device)
 {
     const char *sysname;
 
@@ -48,7 +48,7 @@ UDEV_EXPORT const char *udev_device_get_sysname(struct udev_device *udev_device)
     return NULL;
 }
 
-UDEV_EXPORT const char *udev_device_get_sysnum(struct udev_device *udev_device)
+const char *udev_device_get_sysnum(struct udev_device *udev_device)
 {
     if (!udev_device) {
         return NULL;
@@ -57,7 +57,7 @@ UDEV_EXPORT const char *udev_device_get_sysnum(struct udev_device *udev_device)
     return udev_device_get_property_value(udev_device, "SYSNUM");
 }
 
-UDEV_EXPORT const char *udev_device_get_devpath(struct udev_device *udev_device)
+const char *udev_device_get_devpath(struct udev_device *udev_device)
 {
     if (!udev_device) {
         return NULL;
@@ -66,7 +66,7 @@ UDEV_EXPORT const char *udev_device_get_devpath(struct udev_device *udev_device)
     return udev_device_get_property_value(udev_device, "DEVPATH");
 }
 
-UDEV_EXPORT const char *udev_device_get_devnode(struct udev_device *udev_device)
+const char *udev_device_get_devnode(struct udev_device *udev_device)
 {
     if (!udev_device) {
         return NULL;
@@ -75,7 +75,7 @@ UDEV_EXPORT const char *udev_device_get_devnode(struct udev_device *udev_device)
     return udev_device_get_property_value(udev_device, "DEVNODE");
 }
 
-UDEV_EXPORT dev_t udev_device_get_devnum(struct udev_device *udev_device)
+dev_t udev_device_get_devnum(struct udev_device *udev_device)
 {
     const char *major, *minor;
 
@@ -93,7 +93,7 @@ UDEV_EXPORT dev_t udev_device_get_devnum(struct udev_device *udev_device)
     return makedev(atoi(major), atoi(minor));
 }
 
-UDEV_EXPORT const char *udev_device_get_devtype(struct udev_device *udev_device)
+const char *udev_device_get_devtype(struct udev_device *udev_device)
 {
     if (!udev_device) {
         return NULL;
@@ -102,7 +102,7 @@ UDEV_EXPORT const char *udev_device_get_devtype(struct udev_device *udev_device)
     return udev_device_get_property_value(udev_device, "DEVTYPE");
 }
 
-UDEV_EXPORT const char *udev_device_get_subsystem(struct udev_device *udev_device)
+const char *udev_device_get_subsystem(struct udev_device *udev_device)
 {
     if (!udev_device) {
         return NULL;
@@ -111,7 +111,7 @@ UDEV_EXPORT const char *udev_device_get_subsystem(struct udev_device *udev_devic
     return udev_device_get_property_value(udev_device, "SUBSYSTEM");
 }
 
-UDEV_EXPORT const char *udev_device_get_driver(struct udev_device *udev_device)
+const char *udev_device_get_driver(struct udev_device *udev_device)
 {
     if (!udev_device) {
         return NULL;
@@ -120,12 +120,12 @@ UDEV_EXPORT const char *udev_device_get_driver(struct udev_device *udev_device)
     return udev_device_get_property_value(udev_device, "DRIVER");
 }
 
-UDEV_EXPORT struct udev *udev_device_get_udev(struct udev_device *udev_device)
+struct udev *udev_device_get_udev(struct udev_device *udev_device)
 {
     return udev_device ? udev_device->udev : NULL;
 }
 
-UDEV_EXPORT struct udev_device *udev_device_get_parent(struct udev_device *udev_device)
+struct udev_device *udev_device_get_parent(struct udev_device *udev_device)
 {
     char *tmp, *path;
 
@@ -151,7 +151,7 @@ UDEV_EXPORT struct udev_device *udev_device_get_parent(struct udev_device *udev_
     return udev_device->parent;
 }
 
-UDEV_EXPORT struct udev_device *udev_device_get_parent_with_subsystem_devtype(struct udev_device *udev_device, const char *subsystem, const char *devtype)
+struct udev_device *udev_device_get_parent_with_subsystem_devtype(struct udev_device *udev_device, const char *subsystem, const char *devtype)
 {
     const char *parent_subsystem, *parent_devtype;
     struct udev_device *parent;
@@ -182,45 +182,45 @@ UDEV_EXPORT struct udev_device *udev_device_get_parent_with_subsystem_devtype(st
     return NULL;
 }
 
-UDEV_EXPORT int udev_device_get_is_initialized(struct udev_device *udev_device)
+int udev_device_get_is_initialized(struct udev_device *udev_device)
 {
     return 1;
 }
 
-UDEV_EXPORT const char *udev_device_get_action(struct udev_device *udev_device)
+const char *udev_device_get_action(struct udev_device *udev_device)
 {
     return NULL;
 }
 
-UDEV_EXPORT int udev_device_has_tag(struct udev_device *udev_device, const char *tag)
+int udev_device_has_tag(struct udev_device *udev_device, const char *tag)
 {
     // XXX NOT IMPLEMENTED
     return 0;
 }
 
-UDEV_EXPORT struct udev_list_entry *udev_device_get_devlinks_list_entry(struct udev_device *udev_device)
+struct udev_list_entry *udev_device_get_devlinks_list_entry(struct udev_device *udev_device)
 {
     // XXX NOT IMPLEMENTED
     return NULL;
 }
 
-UDEV_EXPORT struct udev_list_entry *udev_device_get_properties_list_entry(struct udev_device *udev_device)
+struct udev_list_entry *udev_device_get_properties_list_entry(struct udev_device *udev_device)
 {
     return udev_device ? udev_list_entry_get_next(&udev_device->properties) : NULL;
 }
 
-UDEV_EXPORT struct udev_list_entry *udev_device_get_tags_list_entry(struct udev_device *udev_device)
+struct udev_list_entry *udev_device_get_tags_list_entry(struct udev_device *udev_device)
 {
     // XXX NOT IMPLEMENTED
     return NULL;
 }
 
-UDEV_EXPORT struct udev_list_entry *udev_device_get_sysattr_list_entry(struct udev_device *udev_device)
+struct udev_list_entry *udev_device_get_sysattr_list_entry(struct udev_device *udev_device)
 {
     return udev_device ? udev_list_entry_get_next(&udev_device->sysattrs) : NULL;
 }
 
-UDEV_EXPORT const char *udev_device_get_property_value(struct udev_device *udev_device, const char *key)
+const char *udev_device_get_property_value(struct udev_device *udev_device, const char *key)
 {
     struct udev_list_entry *list_entry;
 
@@ -228,7 +228,7 @@ UDEV_EXPORT const char *udev_device_get_property_value(struct udev_device *udev_
     return udev_list_entry_get_value(list_entry); 
 }
 
-UDEV_EXPORT const char *udev_device_get_sysattr_value(struct udev_device *udev_device, const char *sysattr)
+const char *udev_device_get_sysattr_value(struct udev_device *udev_device, const char *sysattr)
 {
     struct udev_list_entry *list_entry;
     char data[1024], path[PATH_MAX];
@@ -268,7 +268,7 @@ UDEV_EXPORT const char *udev_device_get_sysattr_value(struct udev_device *udev_d
     return udev_list_entry_get_value(list_entry);
 }
 
-UDEV_EXPORT int udev_device_set_sysattr_value(struct udev_device *udev_device, const char *sysattr, const char *value)
+int udev_device_set_sysattr_value(struct udev_device *udev_device, const char *sysattr, const char *value)
 {
     char path[PATH_MAX];
     struct stat st;
@@ -441,7 +441,7 @@ static void udev_device_set_properties_from_ioctl(struct udev_device *udev_devic
     close(fd);
 }
 
-UDEV_EXPORT struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *syspath)
+struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *syspath)
 {
     char path[PATH_MAX], file[PATH_MAX + 7];
     struct udev_device *udev_device;
@@ -489,7 +489,7 @@ UDEV_EXPORT struct udev_device *udev_device_new_from_syspath(struct udev *udev, 
     return udev_device;
 }
 
-UDEV_EXPORT struct udev_device *udev_device_new_from_devnum(struct udev *udev, char type, dev_t devnum)
+struct udev_device *udev_device_new_from_devnum(struct udev *udev, char type, dev_t devnum)
 {
     char path[PATH_MAX];
 
@@ -511,7 +511,7 @@ UDEV_EXPORT struct udev_device *udev_device_new_from_devnum(struct udev *udev, c
     return udev_device_new_from_syspath(udev, path);
 }
 
-UDEV_EXPORT struct udev_device *udev_device_new_from_subsystem_sysname(struct udev *udev, const char *subsystem, const char *sysname)
+struct udev_device *udev_device_new_from_subsystem_sysname(struct udev *udev, const char *subsystem, const char *sysname)
 {
     char *fmt[] = { "/sys/bus/%s/devices/%s", "/sys/class/%s/%s", NULL };
     char path[PATH_MAX];
@@ -532,19 +532,19 @@ UDEV_EXPORT struct udev_device *udev_device_new_from_subsystem_sysname(struct ud
     return NULL;
 }
 
-UDEV_EXPORT struct udev_device *udev_device_new_from_device_id(struct udev *udev, const char *id)
+struct udev_device *udev_device_new_from_device_id(struct udev *udev, const char *id)
 {
     // XXX NOT IMPLEMENTED
     return NULL;
 }
 
-UDEV_EXPORT struct udev_device *udev_device_new_from_environment(struct udev *udev)
+struct udev_device *udev_device_new_from_environment(struct udev *udev)
 {
     // XXX NOT IMPLEMENTED
     return NULL;
 }
 
-UDEV_EXPORT struct udev_device *udev_device_ref(struct udev_device *udev_device)
+struct udev_device *udev_device_ref(struct udev_device *udev_device)
 {
     if (!udev_device) {
         return NULL;
@@ -554,7 +554,7 @@ UDEV_EXPORT struct udev_device *udev_device_ref(struct udev_device *udev_device)
     return udev_device;
 }
 
-UDEV_EXPORT struct udev_device *udev_device_unref(struct udev_device *udev_device)
+struct udev_device *udev_device_unref(struct udev_device *udev_device)
 {
     if (!udev_device) {
         return NULL;

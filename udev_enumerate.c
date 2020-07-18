@@ -21,7 +21,7 @@ struct udev_enumerate {
     int refcount;
 };
 
-UDEV_EXPORT int udev_enumerate_add_match_subsystem(struct udev_enumerate *udev_enumerate, const char *subsystem)
+int udev_enumerate_add_match_subsystem(struct udev_enumerate *udev_enumerate, const char *subsystem)
 {
     if (!udev_enumerate || !subsystem) {
         return -1;
@@ -30,7 +30,7 @@ UDEV_EXPORT int udev_enumerate_add_match_subsystem(struct udev_enumerate *udev_e
     return udev_list_entry_add(&udev_enumerate->subsystem_match, subsystem, NULL) ? 0 : -1;
 }
 
-UDEV_EXPORT int udev_enumerate_add_nomatch_subsystem(struct udev_enumerate *udev_enumerate, const char *subsystem)
+int udev_enumerate_add_nomatch_subsystem(struct udev_enumerate *udev_enumerate, const char *subsystem)
 {
     if (!udev_enumerate || !subsystem) {
         return -1;
@@ -39,7 +39,7 @@ UDEV_EXPORT int udev_enumerate_add_nomatch_subsystem(struct udev_enumerate *udev
     return udev_list_entry_add(&udev_enumerate->subsystem_nomatch, subsystem, NULL) ? 0 : -1;
 }
 
-UDEV_EXPORT int udev_enumerate_add_match_sysattr(struct udev_enumerate *udev_enumerate, const char *sysattr, const char *value)
+int udev_enumerate_add_match_sysattr(struct udev_enumerate *udev_enumerate, const char *sysattr, const char *value)
 {
     if (!udev_enumerate || !sysattr) {
         return -1;
@@ -48,7 +48,7 @@ UDEV_EXPORT int udev_enumerate_add_match_sysattr(struct udev_enumerate *udev_enu
     return udev_list_entry_add(&udev_enumerate->sysattr_match, sysattr, value) ? 0 : -1;
 }
 
-UDEV_EXPORT int udev_enumerate_add_nomatch_sysattr(struct udev_enumerate *udev_enumerate, const char *sysattr, const char *value)
+int udev_enumerate_add_nomatch_sysattr(struct udev_enumerate *udev_enumerate, const char *sysattr, const char *value)
 {
     if (!udev_enumerate || !sysattr) {
         return -1;
@@ -57,7 +57,7 @@ UDEV_EXPORT int udev_enumerate_add_nomatch_sysattr(struct udev_enumerate *udev_e
     return udev_list_entry_add(&udev_enumerate->sysattr_nomatch, sysattr, value) ? 0 : -1;
 }
 
-UDEV_EXPORT int udev_enumerate_add_match_property(struct udev_enumerate *udev_enumerate, const char *property, const char *value)
+int udev_enumerate_add_match_property(struct udev_enumerate *udev_enumerate, const char *property, const char *value)
 {
     if (!udev_enumerate || !property) {
         return -1;
@@ -66,7 +66,7 @@ UDEV_EXPORT int udev_enumerate_add_match_property(struct udev_enumerate *udev_en
     return udev_list_entry_add(&udev_enumerate->property_match, property, value) ? 0 : -1;
 }
 
-UDEV_EXPORT int udev_enumerate_add_match_sysname(struct udev_enumerate *udev_enumerate, const char *sysname)
+int udev_enumerate_add_match_sysname(struct udev_enumerate *udev_enumerate, const char *sysname)
 {
     if (!udev_enumerate || !sysname) {
         return -1;
@@ -75,19 +75,19 @@ UDEV_EXPORT int udev_enumerate_add_match_sysname(struct udev_enumerate *udev_enu
     return udev_list_entry_add(&udev_enumerate->sysname_match, sysname, NULL) ? 0 : -1;
 }
 
-UDEV_EXPORT int udev_enumerate_add_match_tag(struct udev_enumerate *udev_enumerate, const char *tag)
+int udev_enumerate_add_match_tag(struct udev_enumerate *udev_enumerate, const char *tag)
 {
     // XXX NOT IMPLEMENTED
     return 0;
 }
 
-UDEV_EXPORT int udev_enumerate_add_match_parent(struct udev_enumerate *udev_enumerate, struct udev_device *parent)
+int udev_enumerate_add_match_parent(struct udev_enumerate *udev_enumerate, struct udev_device *parent)
 {
     // XXX NOT IMPLEMENTED
     return 0;
 }
 
-UDEV_EXPORT int udev_enumerate_add_match_is_initialized(struct udev_enumerate *udev_enumerate)
+int udev_enumerate_add_match_is_initialized(struct udev_enumerate *udev_enumerate)
 {
     return 0;
 }
@@ -301,35 +301,35 @@ static void udev_enumerate_scan_dir(struct udev_enumerate *udev_enumerate, const
     closedir(dp);
 }
 
-UDEV_EXPORT int udev_enumerate_scan_devices(struct udev_enumerate *udev_enumerate)
+int udev_enumerate_scan_devices(struct udev_enumerate *udev_enumerate)
 {
     udev_enumerate_scan_dir(udev_enumerate, "/dev");
     return 0;
 }
 
-UDEV_EXPORT int udev_enumerate_scan_subsystems(struct udev_enumerate *udev_enumerate)
+int udev_enumerate_scan_subsystems(struct udev_enumerate *udev_enumerate)
 {
     // XXX NOT IMPLEMENTED
     return 0;
 }
 
-UDEV_EXPORT struct udev_list_entry *udev_enumerate_get_list_entry(struct udev_enumerate *udev_enumerate)
+struct udev_list_entry *udev_enumerate_get_list_entry(struct udev_enumerate *udev_enumerate)
 {
     return udev_enumerate ? udev_list_entry_get_next(&udev_enumerate->devices) : NULL;
 }
 
-UDEV_EXPORT int udev_enumerate_add_syspath(struct udev_enumerate *udev_enumerate, const char *syspath)
+int udev_enumerate_add_syspath(struct udev_enumerate *udev_enumerate, const char *syspath)
 {
     // XXX NOT IMPLEMENTED
     return 0;
 }
 
-UDEV_EXPORT struct udev *udev_enumerate_get_udev(struct udev_enumerate *udev_enumerate)
+struct udev *udev_enumerate_get_udev(struct udev_enumerate *udev_enumerate)
 {
     return udev_enumerate ? udev_enumerate->udev : NULL;
 }
 
-UDEV_EXPORT struct udev_enumerate *udev_enumerate_new(struct udev *udev)
+struct udev_enumerate *udev_enumerate_new(struct udev *udev)
 {
     struct udev_enumerate *udev_enumerate;
 
@@ -357,7 +357,7 @@ UDEV_EXPORT struct udev_enumerate *udev_enumerate_new(struct udev *udev)
     return udev_enumerate;
 }
 
-UDEV_EXPORT struct udev_enumerate *udev_enumerate_ref(struct udev_enumerate *udev_enumerate)
+struct udev_enumerate *udev_enumerate_ref(struct udev_enumerate *udev_enumerate)
 {
     if (!udev_enumerate) {
         return NULL;
@@ -367,7 +367,7 @@ UDEV_EXPORT struct udev_enumerate *udev_enumerate_ref(struct udev_enumerate *ude
     return udev_enumerate;
 }
 
-UDEV_EXPORT struct udev_enumerate *udev_enumerate_unref(struct udev_enumerate *udev_enumerate)
+struct udev_enumerate *udev_enumerate_unref(struct udev_enumerate *udev_enumerate)
 {
     if (!udev_enumerate) {
         return NULL;

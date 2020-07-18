@@ -6,7 +6,7 @@ struct udev {
     int refcount;
 };
 
-UDEV_EXPORT struct udev *udev_new(void)
+struct udev *udev_new(void)
 {
     struct udev *udev;
 
@@ -14,7 +14,7 @@ UDEV_EXPORT struct udev *udev_new(void)
     return udev;
 }
 
-UDEV_EXPORT struct udev *udev_ref(struct udev *udev)
+struct udev *udev_ref(struct udev *udev)
 {
     if (!udev) {
         return NULL;
@@ -24,7 +24,7 @@ UDEV_EXPORT struct udev *udev_ref(struct udev *udev)
     return udev;
 }
 
-UDEV_EXPORT struct udev *udev_unref(struct udev *udev)
+struct udev *udev_unref(struct udev *udev)
 {
     if (!udev) {
         return NULL;

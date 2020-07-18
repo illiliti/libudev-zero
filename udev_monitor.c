@@ -10,52 +10,52 @@ struct udev_monitor {
     int fd[2];
 };
 
-UDEV_EXPORT struct udev_device *udev_monitor_receive_device(struct udev_monitor *udev_monitor)
+struct udev_device *udev_monitor_receive_device(struct udev_monitor *udev_monitor)
 {
     return (void *)1;
 }
 
-UDEV_EXPORT int udev_monitor_enable_receiving(struct udev_monitor *udev_monitor)
+int udev_monitor_enable_receiving(struct udev_monitor *udev_monitor)
 {
     return 0;
 }
 
-UDEV_EXPORT int udev_monitor_set_receive_buffer_size(struct udev_monitor *udev_monitor, int size)
+int udev_monitor_set_receive_buffer_size(struct udev_monitor *udev_monitor, int size)
 {
     return 0;
 }
 
-UDEV_EXPORT int udev_monitor_get_fd(struct udev_monitor *udev_monitor)
+int udev_monitor_get_fd(struct udev_monitor *udev_monitor)
 {
     return udev_monitor ? udev_monitor->fd[0] : -1;
 }
 
-UDEV_EXPORT struct udev *udev_monitor_get_udev(struct udev_monitor *udev_monitor)
+struct udev *udev_monitor_get_udev(struct udev_monitor *udev_monitor)
 {
     return udev_monitor ? udev_monitor->udev : NULL;
 }
 
-UDEV_EXPORT int udev_monitor_filter_update(struct udev_monitor *udev_monitor)
+int udev_monitor_filter_update(struct udev_monitor *udev_monitor)
 {
     return 0;
 }
 
-UDEV_EXPORT int udev_monitor_filter_remove(struct udev_monitor *udev_monitor)
+int udev_monitor_filter_remove(struct udev_monitor *udev_monitor)
 {
     return 0;
 }
 
-UDEV_EXPORT int udev_monitor_filter_add_match_subsystem_devtype(struct udev_monitor *udev_monitor, const char *subsystem, const char *devtype)
+int udev_monitor_filter_add_match_subsystem_devtype(struct udev_monitor *udev_monitor, const char *subsystem, const char *devtype)
 {
     return 0;
 }
 
-UDEV_EXPORT int udev_monitor_filter_add_match_tag(struct udev_monitor *udev_monitor, const char *tag)
+int udev_monitor_filter_add_match_tag(struct udev_monitor *udev_monitor, const char *tag)
 {
     return 0;
 }
 
-UDEV_EXPORT struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char *name)
+struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char *name)
 {
     struct udev_monitor *udev_monitor;
     int i;
@@ -85,7 +85,7 @@ UDEV_EXPORT struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev
     return udev_monitor;
 }
 
-UDEV_EXPORT struct udev_monitor *udev_monitor_ref(struct udev_monitor *udev_monitor)
+struct udev_monitor *udev_monitor_ref(struct udev_monitor *udev_monitor)
 {
     if (!udev_monitor) {
         return NULL;
@@ -95,7 +95,7 @@ UDEV_EXPORT struct udev_monitor *udev_monitor_ref(struct udev_monitor *udev_moni
     return udev_monitor;
 }
 
-UDEV_EXPORT struct udev_monitor *udev_monitor_unref(struct udev_monitor *udev_monitor)
+struct udev_monitor *udev_monitor_unref(struct udev_monitor *udev_monitor)
 {
     int i;
 
