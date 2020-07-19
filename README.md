@@ -10,9 +10,9 @@ What Works
 * [x] xorg-server
 * [x] libinput
 * [x] wlroots
-* [ ] weston - should work. need test
+* [x] weston
 * [ ] libusb - broken completely
-* [ ] kwin - fails to compile for odd reason
+* [x] kwin - [fix](https://github.com/dilyn-corner/KISS-kde/commit/0cc72748e46f859a0fced55b0c3fcc1dd9586a38)
 * [ ] ???
 
 TODO
