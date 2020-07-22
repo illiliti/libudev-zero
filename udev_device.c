@@ -569,7 +569,7 @@ struct udev_device *udev_device_new_from_uevent(struct udev *udev, const char *d
             snprintf(devnode, sizeof(devnode), "/dev/%s", line + 8);
             udev_list_entry_add(&udev_device->properties, "DEVNAME", devnode);
         }
-        if (strncmp(line, "DEVPATH", 7) == 0) {
+        else if (strncmp(line, "DEVPATH", 7) == 0) {
             snprintf(syspath, sizeof(syspath), "/sys%s", line + 8);
             udev_list_entry_add(&udev_device->properties, "SYSPATH", syspath);
             udev_list_entry_add(&udev_device->properties, "DEVPATH", line + 8);
