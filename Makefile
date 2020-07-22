@@ -4,7 +4,8 @@ PREFIX = /usr/local
 LIBDIR = ${PREFIX}/lib
 INCLUDEDIR = ${PREFIX}/include
 XCFLAGS = ${CPPFLAGS} ${CFLAGS} -std=c99 -fPIC -D_XOPEN_SOURCE=700 \
-		  -Wall -Wextra -Wpedantic -Wmissing-prototypes -Wstrict-prototypes -Wno-unused-parameter
+		  -Wall -Wextra -Wpedantic -Wmissing-prototypes -Wstrict-prototypes \
+		  -Wno-unused-parameter
 XLDFLAGS = ${LDFLAGS} -shared -Wl,-soname,libudev.so.1
 XARFLAGS = -rc
 

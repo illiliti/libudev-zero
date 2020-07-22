@@ -11,6 +11,7 @@
 
 #include "udev.h"
 #include "udev_list.h"
+#include "udev_device.h"
 
 struct udev_device {
     struct udev_list_entry properties;
@@ -37,15 +38,13 @@ const char *udev_device_get_sysname(struct udev_device *udev_device)
         return NULL;
     }
 
-    if ((sysname = udev_device_get_property_value(udev_device, "DEVNAME"))) {
-        return sysname;
+    sysname = udev_device_get_devpath(udev_device);
+
+    if (!sysname) {
+        return NULL;
     }
 
-    if ((sysname = udev_device_get_devpath(udev_device))) {
-        return strrchr(sysname, '/') + 1;
-    }
-
-    return NULL;
+    return strrchr(sysname, '/') + 1;
 }
 
 const char *udev_device_get_sysnum(struct udev_device *udev_device)
@@ -72,7 +71,7 @@ const char *udev_device_get_devnode(struct udev_device *udev_device)
         return NULL;
     }
 
-    return udev_device_get_property_value(udev_device, "DEVNODE");
+    return udev_device_get_property_value(udev_device, "DEVNAME");
 }
 
 dev_t udev_device_get_devnum(struct udev_device *udev_device)
@@ -189,7 +188,11 @@ int udev_device_get_is_initialized(struct udev_device *udev_device)
 
 const char *udev_device_get_action(struct udev_device *udev_device)
 {
-    return NULL;
+    if (!udev_device) {
+        return NULL;
+    }
+
+    return udev_device_get_property_value(udev_device, "ACTION");
 }
 
 int udev_device_has_tag(struct udev_device *udev_device, const char *tag)
@@ -231,7 +234,7 @@ const char *udev_device_get_property_value(struct udev_device *udev_device, cons
 const char *udev_device_get_sysattr_value(struct udev_device *udev_device, const char *sysattr)
 {
     struct udev_list_entry *list_entry;
-    char data[1024], path[PATH_MAX];
+    char data[BUFSIZ], path[PATH_MAX];
     struct stat st;
     int fd;
 
@@ -247,7 +250,7 @@ const char *udev_device_get_sysattr_value(struct udev_device *udev_device, const
 
     snprintf(path, sizeof(path), "%s/%s", udev_device_get_syspath(udev_device), sysattr);
 
-    if (stat(path, &st) != 0 || S_ISDIR(st.st_mode)) {
+    if (stat(path, &st) != 0 || !S_ISREG(st.st_mode)) {
         return NULL;
     }
 
@@ -280,7 +283,7 @@ int udev_device_set_sysattr_value(struct udev_device *udev_device, const char *s
 
     snprintf(path, sizeof(path), "%s/%s", udev_device_get_syspath(udev_device), sysattr);
 
-    if (stat(path, &st) != 0 || S_ISDIR(st.st_mode)) {
+    if (stat(path, &st) != 0 || !S_ISREG(st.st_mode)) {
         return -1;
     }
 
@@ -302,21 +305,25 @@ int udev_device_set_sysattr_value(struct udev_device *udev_device, const char *s
 
 static const char *udev_device_read_symlink(struct udev_device *udev_device, const char *name)
 {
-    char link[PATH_MAX], path[PATH_MAX];
+    char link[NAME_MAX], path[PATH_MAX];
+    ssize_t len;
 
     snprintf(path, sizeof(path), "%s/%s", udev_device_get_syspath(udev_device), name);
 
-    if (!realpath(path, link)) {
+    len = readlink(path, link, sizeof(link));
+
+    if (len == -1) {
         return NULL;
     }
 
+    link[len] = '\0';
     return strrchr(link, '/') + 1;
 }
 
 static void udev_device_set_properties_from_uevent(struct udev_device *udev_device)
 {
-    char *key, *val, line[1024], path[PATH_MAX];
-    char *sysname, devnode[PATH_MAX];
+    char *key, *val, line[BUFSIZ], path[PATH_MAX];
+    char devnode[PATH_MAX];
     FILE *file;
     int i;
 
@@ -332,38 +339,15 @@ static void udev_device_set_properties_from_uevent(struct udev_device *udev_devi
         line[strcspn(line, "\n")] = '\0';
 
         if (strncmp(line, "DEVNAME", 7) == 0) {
-            sysname = strrchr(line + 8, '/');
-
-            if (!sysname) {
-                sysname = line + 8;
-            }
-            else {
-                sysname++;
-            }
-
-            udev_list_entry_add(&udev_device->properties, "DEVNAME", sysname);
-
-            for (i = 0; sysname[i] != '\0'; i++) {
-                if (sysname[i] >= '0' && sysname[i] <= '9') {
-                    udev_list_entry_add(&udev_device->properties, "SYSNUM", sysname + i);
+            for (i = 0; line[i] != '\0'; i++) {
+                if (line[i] >= '0' && line[i] <= '9') {
+                    udev_list_entry_add(&udev_device->properties, "SYSNUM", line + i);
                     break;
                 }
             }
 
             snprintf(devnode, sizeof(devnode), "/dev/%s", line + 8);
-            udev_list_entry_add(&udev_device->properties, "DEVNODE", devnode);
-        }
-        else if (strncmp(line, "DEVTYPE", 7) == 0) {
-            udev_list_entry_add(&udev_device->properties, "DEVTYPE", line + 8);
-        }
-        else if (strncmp(line, "DRIVER", 6) == 0) {
-            continue;
-        }
-        else if (strncmp(line, "MAJOR", 5) == 0) {
-            udev_list_entry_add(&udev_device->properties, "MAJOR", line + 6);
-        }
-        else if (strncmp(line, "MINOR", 5) == 0) {
-            udev_list_entry_add(&udev_device->properties, "MINOR", line + 6);
+            udev_list_entry_add(&udev_device->properties, "DEVNAME", devnode);
         }
         else if (strchr(line, '=')) {
             val = strchr(line, '=') + 1;
@@ -455,7 +439,7 @@ struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *
         return NULL;
     }
 
-    if (stat(path, &st) != 0 || S_ISDIR(st.st_mode) == 0) {
+    if (stat(path, &st) != 0 || !S_ISDIR(st.st_mode)) {
         return NULL;
     }
 
@@ -542,6 +526,74 @@ struct udev_device *udev_device_new_from_environment(struct udev *udev)
 {
     // XXX NOT IMPLEMENTED
     return NULL;
+}
+
+struct udev_device *udev_device_new_from_uevent(struct udev *udev, const char *data)
+{
+    char syspath[PATH_MAX], devnode[PATH_MAX];
+    struct udev_device *udev_device;
+    char *key, *val, *tmp, *line;
+    int i;
+
+    // for now only add and remove actions are supported
+    // TODO test change, offline, online, etc actions
+    if (!(strstr(data, "ACTION=add") || strstr(data, "ACTION=remove"))) {
+        return NULL;
+    }
+
+    udev_device = calloc(1, sizeof(struct udev_device));
+
+    if (!udev_device) {
+        return NULL;
+    }
+
+    udev_device->udev = udev;
+    udev_device->refcount = 1;
+    udev_device->parent = NULL;
+
+    udev_list_entry_init(&udev_device->properties);
+    udev_list_entry_init(&udev_device->sysattrs);
+
+    tmp = strdup(data);
+    line = strtok(tmp, "\n");
+
+    while (line) {
+        if (strncmp(line, "DEVNAME", 7) == 0) {
+            for (i = 0; line[i] != '\0'; i++) {
+                if (line[i] >= '0' && line[i] <= '9') {
+                    udev_list_entry_add(&udev_device->properties, "SYSNUM", line + i);
+                    break;
+                }
+            }
+
+            snprintf(devnode, sizeof(devnode), "/dev/%s", line + 8);
+            udev_list_entry_add(&udev_device->properties, "DEVNAME", devnode);
+        }
+        if (strncmp(line, "DEVPATH", 7) == 0) {
+            snprintf(syspath, sizeof(syspath), "/sys%s", line + 8);
+            udev_list_entry_add(&udev_device->properties, "SYSPATH", syspath);
+            udev_list_entry_add(&udev_device->properties, "DEVPATH", line + 8);
+        }
+        else if (strchr(line, '=')) {
+            key = val = strdup(line);
+            val = strchr(val, '=') + 1;
+            key[strcspn(key, "=")] = '\0';
+
+            udev_list_entry_add(&udev_device->properties, key, val);
+            free(key);
+        }
+
+        line = strtok(NULL, "\n");
+    }
+
+    if (strstr(data, "ACTION=add")) {
+        udev_list_entry_add(&udev_device->properties, "DRIVER", udev_device_read_symlink(udev_device, "driver"));
+        udev_list_entry_add(&udev_device->properties, "SUBSYSTEM", udev_device_read_symlink(udev_device, "subsystem"));
+        udev_device_set_properties_from_ioctl(udev_device);
+    }
+
+    free(tmp);
+    return udev_device;
 }
 
 struct udev_device *udev_device_ref(struct udev_device *udev_device)
