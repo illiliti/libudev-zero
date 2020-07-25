@@ -37,15 +37,13 @@ const char *udev_device_get_sysname(struct udev_device *udev_device)
         return NULL;
     }
 
-    if ((sysname = udev_device_get_property_value(udev_device, "DEVNAME"))) {
-        return sysname;
+    sysname = udev_device_get_devpath(udev_device);
+
+    if (!sysname) {
+        return NULL;
     }
 
-    if ((sysname = udev_device_get_devpath(udev_device))) {
-        return strrchr(sysname, '/') + 1;
-    }
-
-    return NULL;
+    return strrchr(sysname, '/') + 1;
 }
 
 const char *udev_device_get_sysnum(struct udev_device *udev_device)
@@ -72,7 +70,7 @@ const char *udev_device_get_devnode(struct udev_device *udev_device)
         return NULL;
     }
 
-    return udev_device_get_property_value(udev_device, "DEVNODE");
+    return udev_device_get_property_value(udev_device, "DEVNAME");
 }
 
 dev_t udev_device_get_devnum(struct udev_device *udev_device)
@@ -316,7 +314,7 @@ static const char *udev_device_read_symlink(struct udev_device *udev_device, con
 static void udev_device_set_properties_from_uevent(struct udev_device *udev_device)
 {
     char *key, *val, line[1024], path[PATH_MAX];
-    char *sysname, devnode[PATH_MAX];
+    char devnode[PATH_MAX];
     FILE *file;
     int i;
 
@@ -332,38 +330,15 @@ static void udev_device_set_properties_from_uevent(struct udev_device *udev_devi
         line[strcspn(line, "\n")] = '\0';
 
         if (strncmp(line, "DEVNAME", 7) == 0) {
-            sysname = strrchr(line + 8, '/');
-
-            if (!sysname) {
-                sysname = line + 8;
-            }
-            else {
-                sysname++;
-            }
-
-            udev_list_entry_add(&udev_device->properties, "DEVNAME", sysname);
-
-            for (i = 0; sysname[i] != '\0'; i++) {
-                if (sysname[i] >= '0' && sysname[i] <= '9') {
-                    udev_list_entry_add(&udev_device->properties, "SYSNUM", sysname + i);
+            for (i = 8; line[i] != '\0'; i++) {
+                if (line[i] >= '0' && line[i] <= '9') {
+                    udev_list_entry_add(&udev_device->properties, "SYSNUM", line + i);
                     break;
                 }
             }
 
             snprintf(devnode, sizeof(devnode), "/dev/%s", line + 8);
-            udev_list_entry_add(&udev_device->properties, "DEVNODE", devnode);
-        }
-        else if (strncmp(line, "DEVTYPE", 7) == 0) {
-            udev_list_entry_add(&udev_device->properties, "DEVTYPE", line + 8);
-        }
-        else if (strncmp(line, "DRIVER", 6) == 0) {
-            continue;
-        }
-        else if (strncmp(line, "MAJOR", 5) == 0) {
-            udev_list_entry_add(&udev_device->properties, "MAJOR", line + 6);
-        }
-        else if (strncmp(line, "MINOR", 5) == 0) {
-            udev_list_entry_add(&udev_device->properties, "MINOR", line + 6);
+            udev_list_entry_add(&udev_device->properties, "DEVNAME", devnode);
         }
         else if (strchr(line, '=')) {
             val = strchr(line, '=') + 1;
