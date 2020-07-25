@@ -301,13 +301,17 @@ int udev_device_set_sysattr_value(struct udev_device *udev_device, const char *s
 static const char *udev_device_read_symlink(struct udev_device *udev_device, const char *name)
 {
     char link[PATH_MAX], path[PATH_MAX];
+    ssize_t len;
 
     snprintf(path, sizeof(path), "%s/%s", udev_device_get_syspath(udev_device), name);
 
-    if (!realpath(path, link)) {
+    len = readlink(path, link, sizeof(link));
+
+    if (len == -1) {
         return NULL;
     }
 
+    link[len] = '\0';
     return strrchr(link, '/') + 1;
 }
 
