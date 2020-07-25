@@ -430,11 +430,11 @@ struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *
         return NULL;
     }
 
-    if (!realpath(syspath, path)) {
+    if (stat(syspath, &st) != 0 || !S_ISDIR(st.st_mode)) {
         return NULL;
     }
 
-    if (stat(path, &st) != 0 || S_ISDIR(st.st_mode) == 0) {
+    if (!realpath(syspath, path)) {
         return NULL;
     }
 
