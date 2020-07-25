@@ -245,11 +245,11 @@ const char *udev_device_get_sysattr_value(struct udev_device *udev_device, const
 
     snprintf(path, sizeof(path), "%s/%s", udev_device_get_syspath(udev_device), sysattr);
 
-    if (stat(path, &st) != 0 || S_ISDIR(st.st_mode)) {
+    if (lstat(path, &st) != 0 || !S_ISREG(st.st_mode)) {
         return NULL;
     }
 
-    fd = open(path, O_RDONLY | O_NOFOLLOW);
+    fd = open(path, O_RDONLY);
 
     if (fd == -1) {
         return NULL;
@@ -278,11 +278,11 @@ int udev_device_set_sysattr_value(struct udev_device *udev_device, const char *s
 
     snprintf(path, sizeof(path), "%s/%s", udev_device_get_syspath(udev_device), sysattr);
 
-    if (stat(path, &st) != 0 || S_ISDIR(st.st_mode)) {
+    if (lstat(path, &st) != 0 || !S_ISREG(st.st_mode)) {
         return -1;
     }
 
-    fd = open(path, O_WRONLY | O_NOFOLLOW);
+    fd = open(path, O_WRONLY);
 
     if (fd == -1) {
         return -1;
