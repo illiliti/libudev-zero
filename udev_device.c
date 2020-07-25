@@ -229,7 +229,7 @@ const char *udev_device_get_property_value(struct udev_device *udev_device, cons
 const char *udev_device_get_sysattr_value(struct udev_device *udev_device, const char *sysattr)
 {
     struct udev_list_entry *list_entry;
-    char data[1024], path[PATH_MAX];
+    char data[BUFSIZ], path[PATH_MAX];
     struct stat st;
     int fd;
 
@@ -317,8 +317,8 @@ static const char *udev_device_read_symlink(struct udev_device *udev_device, con
 
 static void udev_device_set_properties_from_uevent(struct udev_device *udev_device)
 {
-    char *key, *val, line[1024], path[PATH_MAX];
-    char devnode[PATH_MAX];
+    char line[LINE_MAX], path[PATH_MAX];
+    char *key, *val, devnode[PATH_MAX];
     FILE *file;
     int i;
 
