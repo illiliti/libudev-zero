@@ -406,7 +406,7 @@ static void udev_device_set_properties_from_ioctl(struct udev_device *udev_devic
 
 struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *syspath)
 {
-    char path[PATH_MAX], file[PATH_MAX + 7];
+    char path[PATH_MAX], file[PATH_MAX];
     char *subsystem, *driver, *sysname;
     struct udev_device *udev_device;
     int i;
