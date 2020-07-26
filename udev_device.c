@@ -298,7 +298,7 @@ int udev_device_set_sysattr_value(struct udev_device *udev_device, const char *s
     return 0;
 }
 
-static const char *udev_device_read_symlink(struct udev_device *udev_device, const char *name)
+static char *udev_device_read_symlink(struct udev_device *udev_device, const char *name)
 {
     char link[PATH_MAX], path[PATH_MAX];
     ssize_t len;
@@ -312,7 +312,7 @@ static const char *udev_device_read_symlink(struct udev_device *udev_device, con
     }
 
     link[len] = '\0';
-    return strrchr(link, '/') + 1;
+    return strdup(strrchr(link, '/') + 1);
 }
 
 static void udev_device_set_properties_from_uevent(struct udev_device *udev_device)
@@ -424,6 +424,7 @@ struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *
 {
     char path[PATH_MAX], file[PATH_MAX + 7];
     struct udev_device *udev_device;
+    char *subsystem, *driver;
     struct stat st;
 
     if (!udev || !syspath) {
@@ -459,8 +460,20 @@ struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *
 
     udev_list_entry_add(&udev_device->properties, "SYSPATH", path);
     udev_list_entry_add(&udev_device->properties, "DEVPATH", path + 4);
-    udev_list_entry_add(&udev_device->properties, "DRIVER", udev_device_read_symlink(udev_device, "driver"));
-    udev_list_entry_add(&udev_device->properties, "SUBSYSTEM", udev_device_read_symlink(udev_device, "subsystem"));
+
+    subsystem = udev_device_read_symlink(udev_device, "subsystem");
+
+    if (subsystem) {
+        udev_list_entry_add(&udev_device->properties, "SUBSYSTEM", subsystem);
+        free(subsystem);
+    }
+
+    driver = udev_device_read_symlink(udev_device, "driver");
+
+    if (driver) {
+        udev_list_entry_add(&udev_device->properties, "DRIVER", driver);
+        free(driver);
+    }
 
     udev_device_set_properties_from_uevent(udev_device);
     udev_device_set_properties_from_ioctl(udev_device);

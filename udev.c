@@ -11,6 +11,12 @@ struct udev *udev_new(void)
     struct udev *udev;
 
     udev = calloc(1, sizeof(struct udev));
+
+    if (!udev) {
+        return NULL;
+    }
+
+    udev->refcount = 1;
     return udev;
 }
 
