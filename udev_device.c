@@ -31,19 +31,11 @@ const char *udev_device_get_syspath(struct udev_device *udev_device)
 
 const char *udev_device_get_sysname(struct udev_device *udev_device)
 {
-    const char *sysname;
-
     if (!udev_device) {
         return NULL;
     }
 
-    sysname = udev_device_get_devpath(udev_device);
-
-    if (!sysname) {
-        return NULL;
-    }
-
-    return strrchr(sysname, '/') + 1;
+    return udev_device_get_property_value(udev_device, "SYSNAME");
 }
 
 const char *udev_device_get_sysnum(struct udev_device *udev_device)
@@ -320,7 +312,6 @@ static void udev_device_set_properties_from_uevent(struct udev_device *udev_devi
     char line[LINE_MAX], path[PATH_MAX];
     char *key, *val, devnode[PATH_MAX];
     FILE *file;
-    int i;
 
     snprintf(path, sizeof(path), "%s/uevent", udev_device_get_syspath(udev_device));
 
@@ -334,13 +325,6 @@ static void udev_device_set_properties_from_uevent(struct udev_device *udev_devi
         line[strcspn(line, "\n")] = '\0';
 
         if (strncmp(line, "DEVNAME", 7) == 0) {
-            for (i = 8; line[i] != '\0'; i++) {
-                if (line[i] >= '0' && line[i] <= '9') {
-                    udev_list_entry_add(&udev_device->properties, "SYSNUM", line + i);
-                    break;
-                }
-            }
-
             snprintf(devnode, sizeof(devnode), "/dev/%s", line + 8);
             udev_list_entry_add(&udev_device->properties, "DEVNAME", devnode);
         }
@@ -423,25 +407,21 @@ static void udev_device_set_properties_from_ioctl(struct udev_device *udev_devic
 struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *syspath)
 {
     char path[PATH_MAX], file[PATH_MAX + 7];
+    char *subsystem, *driver, *sysname;
     struct udev_device *udev_device;
-    char *subsystem, *driver;
-    struct stat st;
+    int i;
 
     if (!udev || !syspath) {
         return NULL;
     }
 
-    if (stat(syspath, &st) != 0 || !S_ISDIR(st.st_mode)) {
+    snprintf(file, sizeof(file), "%s/uevent", syspath);
+
+    if (access(file, R_OK) == -1) {
         return NULL;
     }
 
     if (!realpath(syspath, path)) {
-        return NULL;
-    }
-
-    snprintf(file, sizeof(file), "%s/uevent", path);
-
-    if (access(file, R_OK) == -1) {
         return NULL;
     }
 
@@ -460,6 +440,16 @@ struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *
 
     udev_list_entry_add(&udev_device->properties, "SYSPATH", path);
     udev_list_entry_add(&udev_device->properties, "DEVPATH", path + 4);
+
+    sysname = strrchr(path, '/') + 1;
+    udev_list_entry_add(&udev_device->properties, "SYSNAME", sysname);
+
+    for (i = 0; sysname[i] != '\0'; i++) {
+        if (sysname[i] >= '0' && sysname[i] <= '9') {
+            udev_list_entry_add(&udev_device->properties, "SYSNUM", sysname + i);
+            break;
+        }
+    }
 
     subsystem = udev_device_read_symlink(udev_device, "subsystem");
 
