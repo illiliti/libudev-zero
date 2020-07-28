@@ -291,18 +291,12 @@ int udev_enumerate_scan_devices(struct udev_enumerate *udev_enumerate)
 {
     char *path[] = { "/sys/dev/block", "/sys/dev/char", NULL };
     struct udev_enumerate_thread *data;
-    pthread_mutex_t *mutex;
+    pthread_mutex_t mutex;
     struct dirent **de;
     pthread_t *thread;
     int len, i, u;
 
-    mutex = malloc(sizeof(pthread_mutex_t));
-
-    if (!mutex) {
-        return -1;
-    }
-
-    pthread_mutex_init(mutex, NULL);
+    pthread_mutex_init(&mutex, NULL);
 
     for (i = 0; path[i]; i++) {
         len = scandir(path[i], &de, udev_enumerate_filter_dots, NULL);
@@ -334,10 +328,11 @@ int udev_enumerate_scan_devices(struct udev_enumerate *udev_enumerate)
             continue;
         }
 
+        // TODO do we really need structure for every thread ?
         for (u = 0; u < len; u++) {
             data[u].path = path[i];
             data[u].name = de[u]->d_name;
-            data[u].mutex = mutex;
+            data[u].mutex = &mutex;
             data[u].udev_enumerate = udev_enumerate;
 
             pthread_create(&thread[u], NULL, udev_enumerate_add_device, &data[u]);
@@ -356,8 +351,7 @@ int udev_enumerate_scan_devices(struct udev_enumerate *udev_enumerate)
         free(thread);
     }
 
-    pthread_mutex_destroy(mutex);
-    free(mutex);
+    pthread_mutex_destroy(&mutex);
     return 0;
 }
 
