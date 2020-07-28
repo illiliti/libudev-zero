@@ -269,11 +269,13 @@ static void *udev_enumerate_add_device(void *ptr)
         return NULL;
     }
 
+    snprintf(path, sizeof(path), "%s", udev_device_get_syspath(udev_device));
+    udev_device_unref(udev_device);
+
     pthread_mutex_lock(data->mutex);
-    udev_list_entry_add(&data->udev_enumerate->devices, udev_device_get_syspath(udev_device), NULL);
+    udev_list_entry_add(&data->udev_enumerate->devices, path, NULL);
     pthread_mutex_unlock(data->mutex);
 
-    udev_device_unref(udev_device);
     return NULL;
 }
 
