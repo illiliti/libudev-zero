@@ -307,27 +307,18 @@ int udev_enumerate_scan_devices(struct udev_enumerate *udev_enumerate)
             continue;
         }
 
+        data = calloc(len, sizeof(struct udev_enumerate_thread));
         thread = calloc(len, sizeof(pthread_t));
 
-        if (!thread) {
-            for (u = 0; u < len; u++) {
-                free(de[u]);
-            }
-
-            free(de);
-            continue;
-        }
-
-        data = calloc(len, sizeof(struct udev_enumerate_thread));
-
-        if (!data) {
+        if (!data || !thread) {
             for (u = 0; u < len; u++) {
                 free(de[u]);
             }
 
             free(thread);
+            free(data);
             free(de);
-            continue;
+            return -1;
         }
 
         // TODO do we really need structure for every thread ?
