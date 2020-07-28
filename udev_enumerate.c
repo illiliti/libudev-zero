@@ -4,7 +4,7 @@
 #include <string.h>
 #include <limits.h>
 #include <fnmatch.h>
-#include <sys/stat.h>
+#include <pthread.h>
 
 #include "udev.h"
 #include "udev_list.h"
@@ -19,6 +19,13 @@ struct udev_enumerate {
     struct udev_list_entry devices;
     struct udev *udev;
     int refcount;
+};
+
+struct udev_enumerate_thread {
+    struct udev_enumerate *udev_enumerate;
+    pthread_mutex_t *mutex;
+    char *name;
+    char *path;
 };
 
 int udev_enumerate_add_match_subsystem(struct udev_enumerate *udev_enumerate, const char *subsystem)
@@ -241,69 +248,116 @@ static int udev_enumerate_filter_sysattr(struct udev_enumerate *udev_enumerate, 
     return 1;
 }
 
-static void udev_enumerate_add_device(struct udev_enumerate *udev_enumerate, const char type, dev_t devnum)
+static void *udev_enumerate_add_device(void *ptr)
 {
+    struct udev_enumerate_thread *data = ptr;
     struct udev_device *udev_device;
+    char path[PATH_MAX];
 
-    udev_device = udev_device_new_from_devnum(udev_enumerate->udev, type, devnum);
+    snprintf(path, sizeof(path), "%s/%s", data->path, data->name);
+    udev_device = udev_device_new_from_syspath(data->udev_enumerate->udev, path);
 
     if (!udev_device) {
-        return;
+        return NULL;
     }
 
-    if (!udev_enumerate_filter_subsystem(udev_enumerate, udev_device) ||
-        !udev_enumerate_filter_sysname(udev_enumerate, udev_device) ||
-        !udev_enumerate_filter_property(udev_enumerate, udev_device) ||
-        !udev_enumerate_filter_sysattr(udev_enumerate, udev_device)) {
+    if (!udev_enumerate_filter_subsystem(data->udev_enumerate, udev_device) ||
+        !udev_enumerate_filter_sysname(data->udev_enumerate, udev_device) ||
+        !udev_enumerate_filter_property(data->udev_enumerate, udev_device) ||
+        !udev_enumerate_filter_sysattr(data->udev_enumerate, udev_device)) {
         udev_device_unref(udev_device);
-        return;
+        return NULL;
     }
 
-    udev_list_entry_add(&udev_enumerate->devices, udev_device_get_syspath(udev_device), NULL);
+    pthread_mutex_lock(data->mutex);
+    udev_list_entry_add(&data->udev_enumerate->devices, udev_device_get_syspath(udev_device), NULL);
+    pthread_mutex_unlock(data->mutex);
+
     udev_device_unref(udev_device);
+    return NULL;
 }
 
-static void udev_enumerate_scan_dir(struct udev_enumerate *udev_enumerate, const char *path)
+static int udev_enumerate_filter_dots(const struct dirent *de)
 {
-    char file[PATH_MAX];
-    struct dirent *de;
-    struct stat st;
-    DIR *dp;
-
-    dp = opendir(path);
-
-    if (!dp) {
-        return;
+    if (strcmp(de->d_name, ".") == 0 ||
+        strcmp(de->d_name, "..") == 0) {
+        return 0;
     }
 
-    while ((de = readdir(dp))) {
-        if (strcmp(de->d_name, ".") == 0 ||
-            strcmp(de->d_name, "..") == 0) {
-            continue;
-        }
-
-        snprintf(file, sizeof(file), "%s/%s", path, de->d_name);
-
-        if (lstat(file, &st) != 0 || S_ISLNK(st.st_mode)) {
-            continue;
-        }
-        else if (S_ISDIR(st.st_mode)) {
-            udev_enumerate_scan_dir(udev_enumerate, file);
-        }
-        else if (S_ISBLK(st.st_mode)) {
-            udev_enumerate_add_device(udev_enumerate, 'b', st.st_rdev);
-        }
-        else if (S_ISCHR(st.st_mode)) {
-            udev_enumerate_add_device(udev_enumerate, 'c', st.st_rdev);
-        }
-    }
-
-    closedir(dp);
+    return 1;
 }
 
 int udev_enumerate_scan_devices(struct udev_enumerate *udev_enumerate)
 {
-    udev_enumerate_scan_dir(udev_enumerate, "/dev");
+    char *path[] = { "/sys/dev/block", "/sys/dev/char", NULL };
+    struct udev_enumerate_thread *data;
+    pthread_mutex_t *mutex;
+    struct dirent **de;
+    pthread_t *thread;
+    int len, i, u;
+
+    mutex = malloc(sizeof(pthread_mutex_t));
+
+    if (!mutex) {
+        return -1;
+    }
+
+    pthread_mutex_init(mutex, NULL);
+
+    for (i = 0; path[i]; i++) {
+        len = scandir(path[i], &de, udev_enumerate_filter_dots, NULL);
+
+        if (len == -1) {
+            continue;
+        }
+
+        thread = calloc(len, sizeof(pthread_t));
+
+        if (!thread) {
+            for (u = 0; u < len; u++) {
+                free(de[u]);
+            }
+
+            free(de);
+            continue;
+        }
+
+        data = calloc(len, sizeof(struct udev_enumerate_thread));
+
+        if (!data) {
+            for (u = 0; u < len; u++) {
+                free(de[u]);
+            }
+
+            free(thread);
+            free(de);
+            continue;
+        }
+
+        for (u = 0; u < len; u++) {
+            data[u].path = path[i];
+            data[u].name = de[u]->d_name;
+            data[u].mutex = mutex;
+            data[u].udev_enumerate = udev_enumerate;
+
+            pthread_create(&thread[u], NULL, udev_enumerate_add_device, &data[u]);
+        }
+
+        for (u = 0; u < len; u++) {
+            pthread_join(thread[u], NULL);
+        }
+
+        for (u = 0; u < len; u++) {
+            free(de[u]);
+        }
+
+        free(de);
+        free(data);
+        free(thread);
+    }
+
+    pthread_mutex_destroy(mutex);
+    free(mutex);
     return 0;
 }
 
