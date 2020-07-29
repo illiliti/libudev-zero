@@ -24,6 +24,7 @@ struct udev_enumerate {
 struct udev_enumerate_thread {
     struct udev_enumerate *udev_enumerate;
     pthread_mutex_t *mutex;
+    pthread_t thread;
     char *name;
     char *path;
 };
@@ -295,7 +296,6 @@ int udev_enumerate_scan_devices(struct udev_enumerate *udev_enumerate)
     struct udev_enumerate_thread *data;
     pthread_mutex_t mutex;
     struct dirent **de;
-    pthread_t *thread;
     int len, i, u;
 
     pthread_mutex_init(&mutex, NULL);
@@ -308,15 +308,12 @@ int udev_enumerate_scan_devices(struct udev_enumerate *udev_enumerate)
         }
 
         data = calloc(len, sizeof(struct udev_enumerate_thread));
-        thread = calloc(len, sizeof(pthread_t));
 
-        if (!data || !thread) {
+        if (!data) {
             for (u = 0; u < len; u++) {
                 free(de[u]);
             }
 
-            free(thread);
-            free(data);
             free(de);
             return -1;
         }
@@ -328,11 +325,11 @@ int udev_enumerate_scan_devices(struct udev_enumerate *udev_enumerate)
             data[u].mutex = &mutex;
             data[u].udev_enumerate = udev_enumerate;
 
-            pthread_create(&thread[u], NULL, udev_enumerate_add_device, &data[u]);
+            pthread_create(&data[u].thread, NULL, udev_enumerate_add_device, &data[u]);
         }
 
         for (u = 0; u < len; u++) {
-            pthread_join(thread[u], NULL);
+            pthread_join(data[u].thread, NULL);
         }
 
         for (u = 0; u < len; u++) {
@@ -341,7 +338,6 @@ int udev_enumerate_scan_devices(struct udev_enumerate *udev_enumerate)
 
         free(de);
         free(data);
-        free(thread);
     }
 
     pthread_mutex_destroy(&mutex);
