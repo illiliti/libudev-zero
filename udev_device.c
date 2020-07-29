@@ -495,7 +495,7 @@ struct udev_device *udev_device_new_from_devnum(struct udev *udev, char type, de
 
 struct udev_device *udev_device_new_from_subsystem_sysname(struct udev *udev, const char *subsystem, const char *sysname)
 {
-    char *fmt[] = { "/sys/bus/%s/devices/%s", "/sys/class/%s/%s", NULL };
+    const char *fmt[] = { "/sys/bus/%s/devices/%s", "/sys/class/%s/%s", NULL };
     char path[PATH_MAX];
     int i;
 

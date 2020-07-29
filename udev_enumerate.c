@@ -25,8 +25,8 @@ struct udev_enumerate_thread {
     struct udev_enumerate *udev_enumerate;
     pthread_mutex_t *mutex;
     pthread_t thread;
-    char *name;
-    char *path;
+    const char *name;
+    const char *path;
 };
 
 int udev_enumerate_add_match_subsystem(struct udev_enumerate *udev_enumerate, const char *subsystem)
@@ -292,7 +292,7 @@ static int udev_enumerate_filter_dots(const struct dirent *de)
 
 int udev_enumerate_scan_devices(struct udev_enumerate *udev_enumerate)
 {
-    char *path[] = { "/sys/dev/block", "/sys/dev/char", NULL };
+    const char *path[] = { "/sys/dev/block", "/sys/dev/char", NULL };
     struct udev_enumerate_thread *data;
     pthread_mutex_t mutex;
     struct dirent **de;
