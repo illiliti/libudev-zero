@@ -31,20 +31,22 @@ void udev_list_entry_free_all(struct udev_list_entry *list_entry)
     }
 }
 
-struct udev_list_entry *udev_list_entry_add(struct udev_list_entry *list_entry, const char *name, const char *value)
+struct udev_list_entry *udev_list_entry_add(struct udev_list_entry *list_entry, const char *name, const char *value, int uniq)
 {
     struct udev_list_entry *new, *old;
 
-    old = udev_list_entry_get_by_name(list_entry, name);
+    if (uniq) {
+        old = udev_list_entry_get_by_name(list_entry, name);
 
-    if (old) {
-        if (old->value && strcmp(old->value, value) == 0) {
+        if (old) {
+            if (old->value && strcmp(old->value, value) == 0) {
+                return old;
+            }
+
+            free(old->value);
+            old->value = value ? strdup(value) : NULL;
             return old;
         }
-
-        free(old->value);
-        old->value = value ? strdup(value) : NULL;
-        return old;
     }
 
     new = calloc(1, sizeof(struct udev_list_entry));

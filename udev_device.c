@@ -254,7 +254,7 @@ const char *udev_device_get_sysattr_value(struct udev_device *udev_device, const
 
     close(fd);
     data[strcspn(data, "\n")] = '\0';
-    list_entry = udev_list_entry_add(&udev_device->sysattrs, sysattr, data);
+    list_entry = udev_list_entry_add(&udev_device->sysattrs, sysattr, data, 0);
     return udev_list_entry_get_value(list_entry);
 }
 
@@ -286,7 +286,7 @@ int udev_device_set_sysattr_value(struct udev_device *udev_device, const char *s
     }
 
     close(fd);
-    udev_list_entry_add(&udev_device->sysattrs, sysattr, value);
+    udev_list_entry_add(&udev_device->sysattrs, sysattr, value, 1);
     return 0;
 }
 
@@ -326,14 +326,14 @@ static void udev_device_set_properties_from_uevent(struct udev_device *udev_devi
 
         if (strncmp(line, "DEVNAME", 7) == 0) {
             snprintf(devnode, sizeof(devnode), "/dev/%s", line + 8);
-            udev_list_entry_add(&udev_device->properties, "DEVNAME", devnode);
+            udev_list_entry_add(&udev_device->properties, "DEVNAME", devnode, 0);
         }
         else if (strchr(line, '=')) {
             val = strchr(line, '=') + 1;
             key = line;
             key[strcspn(key, "=")] = '\0';
 
-            udev_list_entry_add(&udev_device->properties, key, val);
+            udev_list_entry_add(&udev_device->properties, key, val, 1);
         }
     }
 
@@ -357,7 +357,7 @@ static void udev_device_set_properties_from_ioctl(struct udev_device *udev_devic
         return;
     }
 
-    udev_list_entry_add(&udev_device->properties, "ID_INPUT", "1");
+    udev_list_entry_add(&udev_device->properties, "ID_INPUT", "1", 0);
 
     fd = open(udev_device_get_devnode(udev_device), O_RDONLY);
 
@@ -374,30 +374,30 @@ static void udev_device_set_properties_from_ioctl(struct udev_device *udev_devic
     }
 
     if (test_bit(bits, EV_SW)) {
-        udev_list_entry_add(&udev_device->properties, "ID_INPUT_SWITCH", "1");
+        udev_list_entry_add(&udev_device->properties, "ID_INPUT_SWITCH", "1", 0);
     }
 
     if (test_bit(bits, EV_KEY) && test_bit(key_bits, KEY_ENTER)) {
-        udev_list_entry_add(&udev_device->properties, "ID_INPUT_KEY", "1");
-        udev_list_entry_add(&udev_device->properties, "ID_INPUT_KEYBOARD", "1");
+        udev_list_entry_add(&udev_device->properties, "ID_INPUT_KEY", "1", 0);
+        udev_list_entry_add(&udev_device->properties, "ID_INPUT_KEYBOARD", "1", 0);
     }
 
     if (test_bit(bits, EV_REL) && test_bit(rel_bits, REL_Y) && test_bit(rel_bits, REL_X) &&
         test_bit(key_bits, BTN_MOUSE)) {
-        udev_list_entry_add(&udev_device->properties, "ID_INPUT_MOUSE", "1");
+        udev_list_entry_add(&udev_device->properties, "ID_INPUT_MOUSE", "1", 0);
     }
 
     if (test_bit(bits, EV_ABS) && test_bit(abs_bits, ABS_Y) && test_bit(abs_bits, ABS_X)) {
         if (test_bit(key_bits, BTN_TOUCH) && !test_bit(key_bits, BTN_TOOL_PEN)) {
             if (test_bit(key_bits, BTN_TOOL_FINGER)) {
-                udev_list_entry_add(&udev_device->properties, "ID_INPUT_TOUCHPAD", "1");
+                udev_list_entry_add(&udev_device->properties, "ID_INPUT_TOUCHPAD", "1", 0);
             }
             else {
-                udev_list_entry_add(&udev_device->properties, "ID_INPUT_TOUCHSCREEN", "1");
+                udev_list_entry_add(&udev_device->properties, "ID_INPUT_TOUCHSCREEN", "1", 0);
             }
         }
         else if (test_bit(key_bits, BTN_MOUSE)) {
-            udev_list_entry_add(&udev_device->properties, "ID_INPUT_MOUSE", "1");
+            udev_list_entry_add(&udev_device->properties, "ID_INPUT_MOUSE", "1", 0);
         }
     }
 
@@ -438,15 +438,15 @@ struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *
     udev_list_entry_init(&udev_device->properties);
     udev_list_entry_init(&udev_device->sysattrs);
 
-    udev_list_entry_add(&udev_device->properties, "SYSPATH", path);
-    udev_list_entry_add(&udev_device->properties, "DEVPATH", path + 4);
+    udev_list_entry_add(&udev_device->properties, "SYSPATH", path, 0);
+    udev_list_entry_add(&udev_device->properties, "DEVPATH", path + 4, 0);
 
     sysname = strrchr(path, '/') + 1;
-    udev_list_entry_add(&udev_device->properties, "SYSNAME", sysname);
+    udev_list_entry_add(&udev_device->properties, "SYSNAME", sysname, 0);
 
     for (i = 0; sysname[i] != '\0'; i++) {
         if (sysname[i] >= '0' && sysname[i] <= '9') {
-            udev_list_entry_add(&udev_device->properties, "SYSNUM", sysname + i);
+            udev_list_entry_add(&udev_device->properties, "SYSNUM", sysname + i, 0);
             break;
         }
     }
@@ -454,14 +454,14 @@ struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *
     subsystem = udev_device_read_symlink(udev_device, "subsystem");
 
     if (subsystem) {
-        udev_list_entry_add(&udev_device->properties, "SUBSYSTEM", subsystem);
+        udev_list_entry_add(&udev_device->properties, "SUBSYSTEM", subsystem, 0);
         free(subsystem);
     }
 
     driver = udev_device_read_symlink(udev_device, "driver");
 
     if (driver) {
-        udev_list_entry_add(&udev_device->properties, "DRIVER", driver);
+        udev_list_entry_add(&udev_device->properties, "DRIVER", driver, 0);
         free(driver);
     }
 

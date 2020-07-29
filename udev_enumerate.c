@@ -35,7 +35,7 @@ int udev_enumerate_add_match_subsystem(struct udev_enumerate *udev_enumerate, co
         return -1;
     }
 
-    return udev_list_entry_add(&udev_enumerate->subsystem_match, subsystem, NULL) ? 0 : -1;
+    return udev_list_entry_add(&udev_enumerate->subsystem_match, subsystem, NULL, 0) ? 0 : -1;
 }
 
 int udev_enumerate_add_nomatch_subsystem(struct udev_enumerate *udev_enumerate, const char *subsystem)
@@ -44,7 +44,7 @@ int udev_enumerate_add_nomatch_subsystem(struct udev_enumerate *udev_enumerate, 
         return -1;
     }
 
-    return udev_list_entry_add(&udev_enumerate->subsystem_nomatch, subsystem, NULL) ? 0 : -1;
+    return udev_list_entry_add(&udev_enumerate->subsystem_nomatch, subsystem, NULL, 0) ? 0 : -1;
 }
 
 int udev_enumerate_add_match_sysattr(struct udev_enumerate *udev_enumerate, const char *sysattr, const char *value)
@@ -53,7 +53,7 @@ int udev_enumerate_add_match_sysattr(struct udev_enumerate *udev_enumerate, cons
         return -1;
     }
 
-    return udev_list_entry_add(&udev_enumerate->sysattr_match, sysattr, value) ? 0 : -1;
+    return udev_list_entry_add(&udev_enumerate->sysattr_match, sysattr, value, 0) ? 0 : -1;
 }
 
 int udev_enumerate_add_nomatch_sysattr(struct udev_enumerate *udev_enumerate, const char *sysattr, const char *value)
@@ -62,7 +62,7 @@ int udev_enumerate_add_nomatch_sysattr(struct udev_enumerate *udev_enumerate, co
         return -1;
     }
 
-    return udev_list_entry_add(&udev_enumerate->sysattr_nomatch, sysattr, value) ? 0 : -1;
+    return udev_list_entry_add(&udev_enumerate->sysattr_nomatch, sysattr, value, 0) ? 0 : -1;
 }
 
 int udev_enumerate_add_match_property(struct udev_enumerate *udev_enumerate, const char *property, const char *value)
@@ -71,7 +71,7 @@ int udev_enumerate_add_match_property(struct udev_enumerate *udev_enumerate, con
         return -1;
     }
 
-    return udev_list_entry_add(&udev_enumerate->property_match, property, value) ? 0 : -1;
+    return udev_list_entry_add(&udev_enumerate->property_match, property, value, 0) ? 0 : -1;
 }
 
 int udev_enumerate_add_match_sysname(struct udev_enumerate *udev_enumerate, const char *sysname)
@@ -80,7 +80,7 @@ int udev_enumerate_add_match_sysname(struct udev_enumerate *udev_enumerate, cons
         return -1;
     }
 
-    return udev_list_entry_add(&udev_enumerate->sysname_match, sysname, NULL) ? 0 : -1;
+    return udev_list_entry_add(&udev_enumerate->sysname_match, sysname, NULL, 0) ? 0 : -1;
 }
 
 int udev_enumerate_add_match_tag(struct udev_enumerate *udev_enumerate, const char *tag)
@@ -274,7 +274,7 @@ static void *udev_enumerate_add_device(void *ptr)
     udev_device_unref(udev_device);
 
     pthread_mutex_lock(data->mutex);
-    udev_list_entry_add(&data->udev_enumerate->devices, path, NULL);
+    udev_list_entry_add(&data->udev_enumerate->devices, path, NULL, 0);
     pthread_mutex_unlock(data->mutex);
 
     return NULL;
