@@ -460,17 +460,13 @@ struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *
         }
     }
 
+    driver = udev_device_read_symlink(udev_device, "driver");
     subsystem = udev_device_read_symlink(udev_device, "subsystem");
 
-    if (subsystem) {
+    if (driver || subsystem) {
         udev_list_entry_add(&udev_device->properties, "SUBSYSTEM", subsystem, 0);
-        free(subsystem);
-    }
-
-    driver = udev_device_read_symlink(udev_device, "driver");
-
-    if (driver) {
         udev_list_entry_add(&udev_device->properties, "DRIVER", driver, 0);
+        free(subsystem);
         free(driver);
     }
 
