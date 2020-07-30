@@ -315,7 +315,7 @@ int udev_enumerate_scan_devices(struct udev_enumerate *udev_enumerate)
             }
 
             free(de);
-            return -1;
+            continue;
         }
 
         // TODO do we really need structure for every thread ?
