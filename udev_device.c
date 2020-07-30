@@ -125,6 +125,10 @@ struct udev_device *udev_device_get_parent(struct udev_device *udev_device)
 
     path = strdup(udev_device_get_syspath(udev_device));
 
+    if (!path) {
+        return NULL;
+    }
+
     do {
         if ((tmp = strrchr(path, '/'))) {
             *tmp = '\0';
