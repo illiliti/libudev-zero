@@ -36,6 +36,7 @@ TODO
 
 * [ ] speed up udev_enumerate_scan_devices()
   - [x] threads
+  - [ ] [readfile()](https://lwn.net/Articles/813827/)
   - [ ] deferred plugging via udev_monitor_receive_device()
   - [ ] ~~caching~~ impossible to implement
 * [ ] implement hotplugging support
