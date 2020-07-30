@@ -489,14 +489,14 @@ struct udev_device *udev_device_new_from_devnum(struct udev *udev, char type, de
     }
 
     switch (type) {
-        case 'c':
-            snprintf(path, sizeof(path), "/sys/dev/char/%d:%d", major(devnum), minor(devnum));
-            break;
-        case 'b':
-            snprintf(path, sizeof(path), "/sys/dev/block/%d:%d", major(devnum), minor(devnum));
-            break;
-        default:
-            return NULL;
+    case 'c':
+        snprintf(path, sizeof(path), "/sys/dev/char/%d:%d", major(devnum), minor(devnum));
+        break;
+    case 'b':
+        snprintf(path, sizeof(path), "/sys/dev/block/%d:%d", major(devnum), minor(devnum));
+        break;
+    default:
+        return NULL;
     }
 
     return udev_device_new_from_syspath(udev, path);
