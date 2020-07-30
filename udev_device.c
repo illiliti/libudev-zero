@@ -117,31 +117,35 @@ struct udev *udev_device_get_udev(struct udev_device *udev_device)
 
 struct udev_device *udev_device_get_parent(struct udev_device *udev_device)
 {
-    char *tmp, *path;
+    char *path, *syspath;
 
     if (!udev_device) {
         return NULL;
     }
 
-    path = strdup(udev_device_get_syspath(udev_device));
+    syspath = path = strdup(udev_device_get_syspath(udev_device));
 
     if (!path) {
         return NULL;
     }
 
+    if (strncmp(path, "/sys/devices/", 13) == 0) {
+        path += 13;
+    }
+
     do {
-        if ((tmp = strrchr(path, '/'))) {
-            *tmp = '\0';
+        if ((path = strrchr(path, '/'))) {
+            *path = '\0';
         }
         else {
             break;
         }
 
-        udev_device->parent = udev_device_new_from_syspath(udev_device->udev, path);
+        udev_device->parent = udev_device_new_from_syspath(udev_device->udev, syspath);
     }
     while (!udev_device->parent);
 
-    free(path);
+    free(syspath);
     return udev_device->parent;
 }
 
