@@ -352,7 +352,7 @@ static int test_bit(unsigned long int arr[], int bit)
 static void udev_device_set_properties_from_ioctl(struct udev_device *udev_device)
 {
     unsigned long int bits[96], key_bits[96], rel_bits[96], abs_bits[96];
-    const char *subsystem;
+    const char *devnode, *subsystem;
     int fd;
 
     subsystem = udev_device_get_subsystem(udev_device);
@@ -361,9 +361,13 @@ static void udev_device_set_properties_from_ioctl(struct udev_device *udev_devic
         return;
     }
 
-    udev_list_entry_add(&udev_device->properties, "ID_INPUT", "1", 0);
+    devnode = udev_device_get_devnode(udev_device);
 
-    fd = open(udev_device_get_devnode(udev_device), O_RDONLY);
+    if (!devnode) {
+        return;
+    }
+
+    fd = open(devnode, O_RDONLY);
 
     if (fd == -1) {
         return;
@@ -405,6 +409,7 @@ static void udev_device_set_properties_from_ioctl(struct udev_device *udev_devic
         }
     }
 
+    udev_list_entry_add(&udev_device->properties, "ID_INPUT", "1", 0);
     close(fd);
 }
 
