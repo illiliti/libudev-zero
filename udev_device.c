@@ -369,7 +369,7 @@ static void udev_device_set_properties_from_ioctl(struct udev_device *udev_devic
         return;
     }
 
-    fd = open(devnode, O_RDONLY);
+    fd = open(devnode, O_RDONLY | O_NONBLOCK);
 
     if (fd == -1) {
         return;
