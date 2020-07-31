@@ -123,15 +123,13 @@ struct udev_device *udev_device_get_parent(struct udev_device *udev_device)
         return NULL;
     }
 
-    syspath = path = strdup(udev_device_get_syspath(udev_device));
+    syspath = strdup(udev_device_get_syspath(udev_device));
 
-    if (!path) {
+    if (!syspath) {
         return NULL;
     }
 
-    if (strncmp(path, "/sys/devices/", 13) == 0) {
-        path += 13;
-    }
+    path = syspath + 5;
 
     do {
         if ((path = strrchr(path, '/'))) {
