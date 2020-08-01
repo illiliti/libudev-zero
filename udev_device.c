@@ -5,9 +5,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <sys/stat.h>
-#include <sys/ioctl.h>
 #include <linux/input.h>
-#include <sys/sysmacros.h>
 
 #include "udev.h"
 #include "udev_list.h"
@@ -346,16 +344,61 @@ static void udev_device_set_properties_from_uevent(struct udev_device *udev_devi
     fclose(file);
 }
 
-static int test_bit(unsigned long int arr[], int bit)
+static int populate_bit(unsigned long *arr, const char *val)
 {
-    return arr[bit / LONG_BIT] & (1 << (bit % LONG_BIT));
+    char *bits, *space;
+    int i;
+
+    if (!val) {
+        return -1;
+    }
+
+    if (!strchr(val, ' ')) {
+        arr[0] = strtoul(val, NULL, 16);
+        return 1;
+    }
+
+    bits = strdup(val);
+
+    if (!bits) {
+        return -1;
+    }
+
+    space = strrchr(bits, ' ');
+
+    for (i = 0; space; i++) {
+        *space = '\0';
+        arr[i] = strtoul(space + 1, NULL, 16);
+        space = strrchr(bits, ' ');
+    }
+
+    free(bits);
+    return i;
 }
 
-static void udev_device_set_properties_from_ioctl(struct udev_device *udev_device)
+static int find_bit(unsigned long *arr, int cnt, int bit)
 {
-    unsigned long int bits[96], key_bits[96], rel_bits[96], abs_bits[96];
-    const char *devnode, *subsystem;
-    int fd;
+    int i;
+
+    if (cnt == -1) {
+        return 0;
+    }
+
+    for (i = 0; i < cnt; i++) {
+        if (arr[i] & (1 << (bit % LONG_BIT))) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+static void udev_device_set_properties_from_bits(struct udev_device *udev_device)
+{
+    unsigned long rel_bits[96] = {0}, abs_bits[96] = {0};
+    unsigned long bits[96] = {0}, key_bits[96] = {0};
+    int bits_cnt, rel_cnt, key_cnt, abs_cnt;
+    const char *subsystem;
 
     subsystem = udev_device_get_subsystem(udev_device);
 
@@ -363,56 +406,44 @@ static void udev_device_set_properties_from_ioctl(struct udev_device *udev_devic
         return;
     }
 
-    devnode = udev_device_get_devnode(udev_device);
-
-    if (!devnode) {
+    if (!udev_device_get_parent(udev_device)) {
         return;
     }
 
-    fd = open(devnode, O_RDONLY | O_NONBLOCK);
+    bits_cnt = populate_bit(bits, udev_device_get_property_value(udev_device->parent, "EV"));
+    abs_cnt = populate_bit(abs_bits, udev_device_get_property_value(udev_device->parent, "ABS"));
+    rel_cnt = populate_bit(rel_bits, udev_device_get_property_value(udev_device->parent, "REL"));
+    key_cnt = populate_bit(key_bits, udev_device_get_property_value(udev_device->parent, "KEY"));
 
-    if (fd == -1) {
-        return;
-    }
-
-    if (ioctl(fd, (int)EVIOCGBIT(0, sizeof(bits)), &bits) == -1 ||
-        ioctl(fd, (int)EVIOCGBIT(EV_KEY, sizeof(key_bits)), &key_bits) == -1 ||
-        ioctl(fd, (int)EVIOCGBIT(EV_REL, sizeof(rel_bits)), &rel_bits) == -1 ||
-        ioctl(fd, (int)EVIOCGBIT(EV_ABS, sizeof(abs_bits)), &abs_bits) == -1) {
-        close(fd);
-        return;
-    }
-
-    if (test_bit(bits, EV_SW)) {
+    if (find_bit(bits, bits_cnt, EV_SW)) {
         udev_list_entry_add(&udev_device->properties, "ID_INPUT_SWITCH", "1", 0);
     }
 
-    if (test_bit(bits, EV_KEY) && test_bit(key_bits, KEY_ENTER)) {
+    if (find_bit(bits, bits_cnt, EV_KEY) && find_bit(key_bits, key_cnt, KEY_ENTER)) {
         udev_list_entry_add(&udev_device->properties, "ID_INPUT_KEY", "1", 0);
         udev_list_entry_add(&udev_device->properties, "ID_INPUT_KEYBOARD", "1", 0);
     }
 
-    if (test_bit(bits, EV_REL) && test_bit(rel_bits, REL_Y) && test_bit(rel_bits, REL_X) &&
-        test_bit(key_bits, BTN_MOUSE)) {
+    if (find_bit(bits, bits_cnt, EV_REL) && find_bit(rel_bits, rel_cnt, REL_Y) &&
+        find_bit(rel_bits, rel_cnt, REL_X) && find_bit(key_bits, key_cnt, BTN_MOUSE)) {
         udev_list_entry_add(&udev_device->properties, "ID_INPUT_MOUSE", "1", 0);
     }
 
-    if (test_bit(bits, EV_ABS) && test_bit(abs_bits, ABS_Y) && test_bit(abs_bits, ABS_X)) {
-        if (test_bit(key_bits, BTN_TOUCH) && !test_bit(key_bits, BTN_TOOL_PEN)) {
-            if (test_bit(key_bits, BTN_TOOL_FINGER)) {
+    if (find_bit(bits, bits_cnt, EV_ABS) && find_bit(abs_bits, abs_cnt, ABS_Y) && find_bit(abs_bits, abs_cnt, ABS_X)) {
+        if (find_bit(key_bits, key_cnt, BTN_TOUCH) && !find_bit(key_bits, key_cnt, BTN_TOOL_PEN)) {
+            if (find_bit(key_bits, key_cnt, BTN_TOOL_FINGER)) {
                 udev_list_entry_add(&udev_device->properties, "ID_INPUT_TOUCHPAD", "1", 0);
             }
             else {
                 udev_list_entry_add(&udev_device->properties, "ID_INPUT_TOUCHSCREEN", "1", 0);
             }
         }
-        else if (test_bit(key_bits, BTN_MOUSE)) {
+        else if (find_bit(key_bits, key_cnt, BTN_MOUSE)) {
             udev_list_entry_add(&udev_device->properties, "ID_INPUT_MOUSE", "1", 0);
         }
     }
 
     udev_list_entry_add(&udev_device->properties, "ID_INPUT", "1", 0);
-    close(fd);
 }
 
 struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *syspath)
@@ -473,7 +504,7 @@ struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *
     }
 
     udev_device_set_properties_from_uevent(udev_device);
-    udev_device_set_properties_from_ioctl(udev_device);
+    udev_device_set_properties_from_bits(udev_device);
 
     return udev_device;
 }
