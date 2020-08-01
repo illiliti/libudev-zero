@@ -1,4 +1,3 @@
-#include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -227,7 +226,7 @@ const char *udev_device_get_sysattr_value(struct udev_device *udev_device, const
     struct udev_list_entry *list_entry;
     char data[BUFSIZ], path[PATH_MAX];
     struct stat st;
-    int fd;
+    FILE *file;
 
     if (!udev_device || !sysattr) {
         return NULL;
@@ -245,18 +244,18 @@ const char *udev_device_get_sysattr_value(struct udev_device *udev_device, const
         return NULL;
     }
 
-    fd = open(path, O_RDONLY);
+    file = fopen(path, "r");
 
-    if (fd == -1) {
+    if (!file) {
         return NULL;
     }
 
-    if (read(fd, data, sizeof(data)) == -1) {
-        close(fd);
+    if (fread(data, 1, sizeof(data), file) != sizeof(data) && ferror(file)) {
+        fclose(file);
         return NULL;
     }
 
-    close(fd);
+    fclose(file);
     data[strcspn(data, "\n")] = '\0';
     list_entry = udev_list_entry_add(&udev_device->sysattrs, sysattr, data, 0);
     return udev_list_entry_get_value(list_entry);
@@ -266,7 +265,8 @@ int udev_device_set_sysattr_value(struct udev_device *udev_device, const char *s
 {
     char path[PATH_MAX];
     struct stat st;
-    int fd;
+    size_t len;
+    FILE *file;
 
     if (!udev_device || !sysattr || !value) {
         return -1;
@@ -278,18 +278,19 @@ int udev_device_set_sysattr_value(struct udev_device *udev_device, const char *s
         return -1;
     }
 
-    fd = open(path, O_WRONLY);
+    file = fopen(path, "w");
 
-    if (fd == -1) {
+    if (!file) {
         return -1;
     }
 
-    if (write(fd, value, strlen(value)) == -1) {
-        close(fd);
+    len = strlen(value);
+    if (fwrite(value, 1, len, file) != len) {
+        fclose(file);
         return -1;
     }
 
-    close(fd);
+    fclose(file);
     udev_list_entry_add(&udev_device->sysattrs, sysattr, value, 1);
     return 0;
 }
