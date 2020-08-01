@@ -296,21 +296,21 @@ int udev_enumerate_scan_devices(struct udev_enumerate *udev_enumerate)
     struct udev_enumerate_thread *data;
     pthread_mutex_t mutex;
     struct dirent **de;
-    int len, i, u;
+    int cnt, i, u;
 
     pthread_mutex_init(&mutex, NULL);
 
     for (i = 0; path[i]; i++) {
-        len = scandir(path[i], &de, udev_enumerate_filter_dots, NULL);
+        cnt = scandir(path[i], &de, udev_enumerate_filter_dots, NULL);
 
-        if (len == -1) {
+        if (cnt == -1) {
             continue;
         }
 
-        data = calloc(len, sizeof(struct udev_enumerate_thread));
+        data = calloc(cnt, sizeof(struct udev_enumerate_thread));
 
         if (!data) {
-            for (u = 0; u < len; u++) {
+            for (u = 0; u < cnt; u++) {
                 free(de[u]);
             }
 
@@ -319,7 +319,7 @@ int udev_enumerate_scan_devices(struct udev_enumerate *udev_enumerate)
         }
 
         // TODO do we really need structure for every thread ?
-        for (u = 0; u < len; u++) {
+        for (u = 0; u < cnt; u++) {
             data[u].path = path[i];
             data[u].name = de[u]->d_name;
             data[u].mutex = &mutex;
@@ -328,11 +328,11 @@ int udev_enumerate_scan_devices(struct udev_enumerate *udev_enumerate)
             pthread_create(&data[u].thread, NULL, udev_enumerate_add_device, &data[u]);
         }
 
-        for (u = 0; u < len; u++) {
+        for (u = 0; u < cnt; u++) {
             pthread_join(data[u].thread, NULL);
         }
 
-        for (u = 0; u < len; u++) {
+        for (u = 0; u < cnt; u++) {
             free(de[u]);
         }
 
