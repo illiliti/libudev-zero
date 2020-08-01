@@ -347,16 +347,11 @@ static void udev_device_set_properties_from_uevent(struct udev_device *udev_devi
 
 static int populate_bit(unsigned long *arr, const char *val)
 {
-    char *bits, *space;
+    char *bit, *bits, *save;
     int i;
 
     if (!val) {
         return -1;
-    }
-
-    if (!strchr(val, ' ')) {
-        arr[0] = strtoul(val, NULL, 16);
-        return 1;
     }
 
     bits = strdup(val);
@@ -365,13 +360,14 @@ static int populate_bit(unsigned long *arr, const char *val)
         return -1;
     }
 
-    space = strrchr(bits, ' ');
+    bit = strtok_r(bits, " ", &save);
+    i = 0;
 
-    for (i = 0; space; i++) {
-        *space = '\0';
-        arr[i] = strtoul(space + 1, NULL, 16);
-        space = strrchr(bits, ' ');
+    do {
+        arr[i] = strtoul(bit, NULL, 16);
+        i++;
     }
+    while ((bit = strtok_r(NULL, " ", &save)));
 
     free(bits);
     return i;
@@ -399,6 +395,7 @@ static void udev_device_set_properties_from_bits(struct udev_device *udev_device
     unsigned long rel_bits[96] = {0}, abs_bits[96] = {0};
     unsigned long bits[96] = {0}, key_bits[96] = {0};
     int bits_cnt, rel_cnt, key_cnt, abs_cnt;
+    struct udev_device *parent;
     const char *subsystem;
 
     subsystem = udev_device_get_subsystem(udev_device);
@@ -407,14 +404,20 @@ static void udev_device_set_properties_from_bits(struct udev_device *udev_device
         return;
     }
 
-    if (!udev_device_get_parent(udev_device)) {
-        return;
+    parent = udev_device_get_parent_with_subsystem_devtype(udev_device, "input", NULL);
+
+    while (parent) {
+        if (udev_device_get_property_value(parent, "EV")) {
+            break;
+        }
+
+        parent = udev_device_get_parent_with_subsystem_devtype(parent, "input", NULL);
     }
 
-    bits_cnt = populate_bit(bits, udev_device_get_property_value(udev_device->parent, "EV"));
-    abs_cnt = populate_bit(abs_bits, udev_device_get_property_value(udev_device->parent, "ABS"));
-    rel_cnt = populate_bit(rel_bits, udev_device_get_property_value(udev_device->parent, "REL"));
-    key_cnt = populate_bit(key_bits, udev_device_get_property_value(udev_device->parent, "KEY"));
+    bits_cnt = populate_bit(bits, udev_device_get_property_value(parent, "EV"));
+    abs_cnt = populate_bit(abs_bits, udev_device_get_property_value(parent, "ABS"));
+    rel_cnt = populate_bit(rel_bits, udev_device_get_property_value(parent, "REL"));
+    key_cnt = populate_bit(key_bits, udev_device_get_property_value(parent, "KEY"));
 
     if (find_bit(bits, bits_cnt, EV_SW)) {
         udev_list_entry_add(&udev_device->properties, "ID_INPUT_SWITCH", "1", 0);
