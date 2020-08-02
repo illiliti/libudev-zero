@@ -414,6 +414,10 @@ static void udev_device_set_properties_from_bits(struct udev_device *udev_device
         parent = udev_device_get_parent_with_subsystem_devtype(parent, "input", NULL);
     }
 
+    if (!parent) {
+        return;
+    }
+
     bits_cnt = populate_bit(bits, udev_device_get_property_value(parent, "EV"));
     abs_cnt = populate_bit(abs_bits, udev_device_get_property_value(parent, "ABS"));
     rel_cnt = populate_bit(rel_bits, udev_device_get_property_value(parent, "REL"));
