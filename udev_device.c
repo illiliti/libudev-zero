@@ -19,56 +19,32 @@ struct udev_device {
 
 const char *udev_device_get_syspath(struct udev_device *udev_device)
 {
-    if (!udev_device) {
-        return NULL;
-    }
-
     return udev_device_get_property_value(udev_device, "SYSPATH");
 }
 
 const char *udev_device_get_sysname(struct udev_device *udev_device)
 {
-    if (!udev_device) {
-        return NULL;
-    }
-
     return udev_device_get_property_value(udev_device, "SYSNAME");
 }
 
 const char *udev_device_get_sysnum(struct udev_device *udev_device)
 {
-    if (!udev_device) {
-        return NULL;
-    }
-
     return udev_device_get_property_value(udev_device, "SYSNUM");
 }
 
 const char *udev_device_get_devpath(struct udev_device *udev_device)
 {
-    if (!udev_device) {
-        return NULL;
-    }
-
     return udev_device_get_property_value(udev_device, "DEVPATH");
 }
 
 const char *udev_device_get_devnode(struct udev_device *udev_device)
 {
-    if (!udev_device) {
-        return NULL;
-    }
-
     return udev_device_get_property_value(udev_device, "DEVNAME");
 }
 
 dev_t udev_device_get_devnum(struct udev_device *udev_device)
 {
     const char *major, *minor;
-
-    if (!udev_device) {
-        return makedev(0, 0);
-    }
 
     major = udev_device_get_property_value(udev_device, "MAJOR");
     minor = udev_device_get_property_value(udev_device, "MINOR");
@@ -82,28 +58,16 @@ dev_t udev_device_get_devnum(struct udev_device *udev_device)
 
 const char *udev_device_get_devtype(struct udev_device *udev_device)
 {
-    if (!udev_device) {
-        return NULL;
-    }
-
     return udev_device_get_property_value(udev_device, "DEVTYPE");
 }
 
 const char *udev_device_get_subsystem(struct udev_device *udev_device)
 {
-    if (!udev_device) {
-        return NULL;
-    }
-
     return udev_device_get_property_value(udev_device, "SUBSYSTEM");
 }
 
 const char *udev_device_get_driver(struct udev_device *udev_device)
 {
-    if (!udev_device) {
-        return NULL;
-    }
-
     return udev_device_get_property_value(udev_device, "DRIVER");
 }
 
@@ -215,10 +179,11 @@ struct udev_list_entry *udev_device_get_sysattr_list_entry(struct udev_device *u
 
 const char *udev_device_get_property_value(struct udev_device *udev_device, const char *key)
 {
-    struct udev_list_entry *list_entry;
+    if (!udev_device || !key) {
+        return NULL;
+    }
 
-    list_entry = udev_list_entry_get_by_name(&udev_device->properties, key);
-    return udev_list_entry_get_value(list_entry); 
+    return udev_list_entry_get_value(udev_list_entry_get_by_name(&udev_device->properties, key));
 }
 
 const char *udev_device_get_sysattr_value(struct udev_device *udev_device, const char *sysattr)
@@ -301,7 +266,6 @@ static char *udev_device_read_symlink(struct udev_device *udev_device, const cha
     ssize_t len;
 
     snprintf(path, sizeof(path), "%s/%s", udev_device_get_syspath(udev_device), name);
-
     len = readlink(path, link, sizeof(link));
 
     if (len == -1) {
@@ -319,7 +283,6 @@ static void udev_device_set_properties_from_uevent(struct udev_device *udev_devi
     FILE *file;
 
     snprintf(path, sizeof(path), "%s/uevent", udev_device_get_syspath(udev_device));
-
     file = fopen(path, "r");
 
     if (!file) {
@@ -351,13 +314,13 @@ static int populate_bit(unsigned long *arr, const char *val)
     int i;
 
     if (!val) {
-        return -1;
+        return 0;
     }
 
     bits = strdup(val);
 
     if (!bits) {
-        return -1;
+        return 0;
     }
 
     bit = strtok_r(bits, " ", &save);
@@ -377,7 +340,7 @@ static int find_bit(unsigned long *arr, int cnt, int bit)
 {
     int i;
 
-    if (cnt == -1) {
+    if (!cnt) {
         return 0;
     }
 
@@ -447,7 +410,7 @@ static void udev_device_set_properties_from_bits(struct udev_device *udev_device
             }
         }
         else if (find_bit(key_bits, key_cnt, BTN_MOUSE)) {
-            udev_list_entry_add(&udev_device->properties, "ID_INPUT_MOUSE", "1", 0);
+            udev_list_entry_add(&udev_device->properties, "ID_INPUT_MOUSE", "1", 1);
         }
     }
 
