@@ -9,6 +9,8 @@
 #include "udev.h"
 #include "udev_list.h"
 
+enum { BITS_SIZE = 96 };
+
 struct udev_device {
     struct udev_list_entry properties;
     struct udev_list_entry sysattrs;
@@ -330,7 +332,7 @@ static int populate_bit(unsigned long *arr, const char *val)
         arr[i] = strtoul(bit, NULL, 16);
         i++;
     }
-    while ((bit = strtok_r(NULL, " ", &save)));
+    while ((bit = strtok_r(NULL, " ", &save)) && i < BITS_SIZE);
 
     free(bits);
     return i;
@@ -355,8 +357,8 @@ static int find_bit(unsigned long *arr, int cnt, int bit)
 
 static void udev_device_set_properties_from_bits(struct udev_device *udev_device)
 {
-    unsigned long rel_bits[96] = {0}, abs_bits[96] = {0};
-    unsigned long bits[96] = {0}, key_bits[96] = {0};
+    unsigned long rel_bits[BITS_SIZE] = {0}, abs_bits[BITS_SIZE] = {0};
+    unsigned long bits[BITS_SIZE] = {0}, key_bits[BITS_SIZE] = {0};
     int bits_cnt, rel_cnt, key_cnt, abs_cnt;
     struct udev_device *parent;
     const char *subsystem;
