@@ -326,13 +326,11 @@ static int populate_bit(unsigned long *arr, const char *val)
     }
 
     bit = strtok_r(bits, " ", &save);
-    i = 0;
 
-    do {
+    for (i = 0; bit && i < BITS_SIZE; i++) {
         arr[i] = strtoul(bit, NULL, 16);
-        i++;
+        bit = strtok_r(NULL, " ", &save);
     }
-    while ((bit = strtok_r(NULL, " ", &save)) && i < BITS_SIZE);
 
     free(bits);
     return i;
