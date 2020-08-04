@@ -26,13 +26,15 @@ Installation
 
 ```sh
 make
-make PREFIX=/usr install # overwrites existing udev libraries if any
+make PREFIX=/usr install # will overwrite existing udev libraries if any
+# rebuild all packages which depends on udev
+# here we go !
 ```
 
 TODO
 ----
 
-* [x] speed up udev_enumerate_scan_devices()
+* [x] speed up performance
 * [ ] implement hotplugging support
 
 Donate
