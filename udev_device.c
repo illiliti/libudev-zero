@@ -353,11 +353,13 @@ static int find_bit(unsigned long *arr, int cnt, int bit)
     return 0;
 }
 
-static void udev_device_set_properties_from_bits(struct udev_device *udev_device)
+static void udev_device_set_properties_from_evdev(struct udev_device *udev_device)
 {
-    unsigned long rel_bits[BITS_SIZE] = {0}, abs_bits[BITS_SIZE] = {0};
-    unsigned long bits[BITS_SIZE] = {0}, key_bits[BITS_SIZE] = {0};
-    int bits_cnt, rel_cnt, key_cnt, abs_cnt;
+    unsigned long abs_bits[BITS_SIZE] = {0};
+    unsigned long rel_bits[BITS_SIZE] = {0};
+    unsigned long key_bits[BITS_SIZE] = {0};
+    unsigned long ev_bits[BITS_SIZE] = {0};
+    int ev_cnt, rel_cnt, key_cnt, abs_cnt;
     struct udev_device *parent;
     const char *subsystem;
 
@@ -369,7 +371,11 @@ static void udev_device_set_properties_from_bits(struct udev_device *udev_device
 
     parent = udev_device_get_parent_with_subsystem_devtype(udev_device, "input", NULL);
 
-    while (parent) {
+    while (1) {
+        if (!parent) {
+            return;
+        }
+
         if (udev_device_get_property_value(parent, "EV")) {
             break;
         }
@@ -377,30 +383,26 @@ static void udev_device_set_properties_from_bits(struct udev_device *udev_device
         parent = udev_device_get_parent_with_subsystem_devtype(parent, "input", NULL);
     }
 
-    if (!parent) {
-        return;
-    }
-
-    bits_cnt = populate_bit(bits, udev_device_get_property_value(parent, "EV"));
+    ev_cnt = populate_bit(ev_bits, udev_device_get_property_value(parent, "EV"));
     abs_cnt = populate_bit(abs_bits, udev_device_get_property_value(parent, "ABS"));
     rel_cnt = populate_bit(rel_bits, udev_device_get_property_value(parent, "REL"));
     key_cnt = populate_bit(key_bits, udev_device_get_property_value(parent, "KEY"));
 
-    if (find_bit(bits, bits_cnt, EV_SW)) {
+    if (find_bit(ev_bits, ev_cnt, EV_SW)) {
         udev_list_entry_add(&udev_device->properties, "ID_INPUT_SWITCH", "1", 0);
     }
 
-    if (find_bit(bits, bits_cnt, EV_KEY) && find_bit(key_bits, key_cnt, KEY_ENTER)) {
+    if (find_bit(ev_bits, ev_cnt, EV_KEY) && find_bit(key_bits, key_cnt, KEY_ENTER)) {
         udev_list_entry_add(&udev_device->properties, "ID_INPUT_KEY", "1", 0);
         udev_list_entry_add(&udev_device->properties, "ID_INPUT_KEYBOARD", "1", 0);
     }
 
-    if (find_bit(bits, bits_cnt, EV_REL) && find_bit(rel_bits, rel_cnt, REL_Y) &&
+    if (find_bit(ev_bits, ev_cnt, EV_REL) && find_bit(rel_bits, rel_cnt, REL_Y) &&
         find_bit(rel_bits, rel_cnt, REL_X) && find_bit(key_bits, key_cnt, BTN_MOUSE)) {
         udev_list_entry_add(&udev_device->properties, "ID_INPUT_MOUSE", "1", 0);
     }
 
-    if (find_bit(bits, bits_cnt, EV_ABS) && find_bit(abs_bits, abs_cnt, ABS_Y) && find_bit(abs_bits, abs_cnt, ABS_X)) {
+    if (find_bit(ev_bits, ev_cnt, EV_ABS) && find_bit(abs_bits, abs_cnt, ABS_Y) && find_bit(abs_bits, abs_cnt, ABS_X)) {
         if (find_bit(key_bits, key_cnt, BTN_TOUCH) && !find_bit(key_bits, key_cnt, BTN_TOOL_PEN)) {
             if (find_bit(key_bits, key_cnt, BTN_TOOL_FINGER)) {
                 udev_list_entry_add(&udev_device->properties, "ID_INPUT_TOUCHPAD", "1", 0);
@@ -455,7 +457,12 @@ struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *
     udev_list_entry_add(&udev_device->properties, "DEVPATH", path + 4, 0);
 
     sysname = strrchr(path, '/') + 1;
+    driver = udev_device_read_symlink(udev_device, "driver");
+    subsystem = udev_device_read_symlink(udev_device, "subsystem");
+
+    udev_list_entry_add(&udev_device->properties, "SUBSYSTEM", subsystem, 0);
     udev_list_entry_add(&udev_device->properties, "SYSNAME", sysname, 0);
+    udev_list_entry_add(&udev_device->properties, "DRIVER", driver, 0);
 
     for (i = 0; sysname[i] != '\0'; i++) {
         if (sysname[i] >= '0' && sysname[i] <= '9') {
@@ -464,19 +471,11 @@ struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *
         }
     }
 
-    driver = udev_device_read_symlink(udev_device, "driver");
-    subsystem = udev_device_read_symlink(udev_device, "subsystem");
-
-    if (driver || subsystem) {
-        udev_list_entry_add(&udev_device->properties, "SUBSYSTEM", subsystem, 0);
-        udev_list_entry_add(&udev_device->properties, "DRIVER", driver, 0);
-        free(subsystem);
-        free(driver);
-    }
-
     udev_device_set_properties_from_uevent(udev_device);
-    udev_device_set_properties_from_bits(udev_device);
+    udev_device_set_properties_from_evdev(udev_device);
 
+    free(driver);
+    free(subsystem);
     return udev_device;
 }
 
