@@ -1,5 +1,3 @@
-[![Donate with Bitcoin](https://en.cryptobadges.io/badge/micro/1BwrcsgtWZeLVvNeEQSg4A28a3yrGN3FpK)](https://en.cryptobadges.io/donate/1BwrcsgtWZeLVvNeEQSg4A28a3yrGN3FpK)
-
 libudev-zero
 ============
 
@@ -36,3 +34,10 @@ TODO
 
 * [x] speed up udev_enumerate_scan_devices()
 * [ ] implement hotplugging support
+
+Donate
+------
+
+You can donate if you like this project
+
+BTC: 1BwrcsgtWZeLVvNeEQSg4A28a3yrGN3FpK
