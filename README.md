@@ -11,7 +11,7 @@ What Works
 * [x] libinput
 * [x] wlroots
 * [x] weston
-* [ ] libusb - broken completely
+* [ ] libusb - doesn't work for now. temporary workaround is compiling libusb with --disable-udev
 * [x] kwin - [fix](https://github.com/dilyn-corner/KISS-kde/commit/0cc72748e46f859a0fced55b0c3fcc1dd9586a38)
 * [ ] ???
 
