@@ -252,6 +252,7 @@ int udev_device_set_sysattr_value(struct udev_device *udev_device, const char *s
     }
 
     len = strlen(value);
+
     if (fwrite(value, 1, len, file) != len) {
         fclose(file);
         return -1;
@@ -388,7 +389,13 @@ static void udev_device_set_properties_from_evdev(struct udev_device *udev_devic
     rel_cnt = populate_bit(rel_bits, udev_device_get_property_value(parent, "REL"));
     key_cnt = populate_bit(key_bits, udev_device_get_property_value(parent, "KEY"));
 
+    // TODO iterate over KEY_*
+
     if (find_bit(ev_bits, ev_cnt, EV_SW)) {
+        if (find_bit(ev_bits, ev_cnt, EV_KEY)) {
+            udev_list_entry_add(&udev_device->properties, "ID_INPUT_KEY", "1", 0);
+        }
+
         udev_list_entry_add(&udev_device->properties, "ID_INPUT_SWITCH", "1", 0);
     }
 
