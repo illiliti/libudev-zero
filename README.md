@@ -36,7 +36,11 @@ TODO
 
 * [x] speed up performance
 * [ ] implement hotplugging support
-* [ ] joysticks, accelerometers, pointing sticks, tablets support (pull requests are welcome)
+* [ ] extend devices support (pull requests are welcome)
+  - [ ] tablets
+  - [ ] joysticks
+  - [ ] accelerometers
+  - [ ] pointing sticks
 
 Donate
 ------
