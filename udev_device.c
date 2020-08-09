@@ -356,11 +356,12 @@ static int find_bit(unsigned long *arr, int cnt, int bit)
 
 static void udev_device_set_properties_from_evdev(struct udev_device *udev_device)
 {
+    int ev_cnt, rel_cnt, key_cnt, abs_cnt, prop_cnt;
+    unsigned long prop_bits[BITS_SIZE] = {0};
     unsigned long abs_bits[BITS_SIZE] = {0};
     unsigned long rel_bits[BITS_SIZE] = {0};
     unsigned long key_bits[BITS_SIZE] = {0};
     unsigned long ev_bits[BITS_SIZE] = {0};
-    int ev_cnt, rel_cnt, key_cnt, abs_cnt;
     struct udev_device *parent;
     const char *subsystem;
 
@@ -388,8 +389,22 @@ static void udev_device_set_properties_from_evdev(struct udev_device *udev_devic
     abs_cnt = populate_bit(abs_bits, udev_device_get_property_value(parent, "ABS"));
     rel_cnt = populate_bit(rel_bits, udev_device_get_property_value(parent, "REL"));
     key_cnt = populate_bit(key_bits, udev_device_get_property_value(parent, "KEY"));
+    prop_cnt = populate_bit(prop_bits, udev_device_get_property_value(parent, "PROP"));
 
-    // TODO iterate over KEY_*
+    // TODO iterate over KEY_* to find ID_INPUT_KEY or use exclusion method
+
+    udev_list_entry_add(&udev_device->properties, "ID_INPUT", "1", 0);
+
+    if (find_bit(prop_bits, prop_cnt, INPUT_PROP_POINTING_STICK)) {
+        udev_list_entry_add(&udev_device->properties, "ID_INPUT_POINTINGSTICK", "1", 0);
+    }
+
+    if (find_bit(prop_bits, prop_cnt, INPUT_PROP_ACCELEROMETER) ||
+        (find_bit(ev_bits, ev_cnt, EV_ABS) && !find_bit(ev_bits, ev_cnt, EV_KEY) &&
+         find_bit(abs_bits, abs_cnt, ABS_Y) && find_bit(abs_bits, abs_cnt, ABS_X) &&
+         find_bit(abs_bits, abs_cnt, ABS_Z))) {
+        udev_list_entry_add(&udev_device->properties, "ID_INPUT_ACCELEROMETER", "1", 0);
+    }
 
     if (find_bit(ev_bits, ev_cnt, EV_SW)) {
         if (find_bit(ev_bits, ev_cnt, EV_KEY)) {
@@ -410,7 +425,10 @@ static void udev_device_set_properties_from_evdev(struct udev_device *udev_devic
     }
 
     if (find_bit(ev_bits, ev_cnt, EV_ABS) && find_bit(abs_bits, abs_cnt, ABS_Y) && find_bit(abs_bits, abs_cnt, ABS_X)) {
-        if (find_bit(key_bits, key_cnt, BTN_TOUCH) && !find_bit(key_bits, key_cnt, BTN_TOOL_PEN)) {
+        if (find_bit(key_bits, key_cnt, BTN_STYLUS) || find_bit(key_bits, key_cnt, BTN_TOOL_PEN)) {
+            udev_list_entry_add(&udev_device->properties, "ID_INPUT_TABLET", "1", 0);
+        }
+        else if (find_bit(key_bits, key_cnt, BTN_TOUCH)) {
             if (find_bit(key_bits, key_cnt, BTN_TOOL_FINGER)) {
                 udev_list_entry_add(&udev_device->properties, "ID_INPUT_TOUCHPAD", "1", 0);
             }
@@ -419,11 +437,9 @@ static void udev_device_set_properties_from_evdev(struct udev_device *udev_devic
             }
         }
         else if (find_bit(key_bits, key_cnt, BTN_MOUSE)) {
-            udev_list_entry_add(&udev_device->properties, "ID_INPUT_MOUSE", "1", 1);
+            udev_list_entry_add(&udev_device->properties, "ID_INPUT_MOUSE", "1", 0);
         }
     }
-
-    udev_list_entry_add(&udev_device->properties, "ID_INPUT", "1", 0);
 }
 
 struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *syspath)
