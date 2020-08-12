@@ -346,7 +346,7 @@ static int find_bit(unsigned long *arr, int cnt, int bit)
     }
 
     for (i = 0; i < cnt; i++) {
-        if (arr[i] & (1 << (bit % LONG_BIT))) {
+        if (arr[i] & (1UL << (bit % LONG_BIT))) {
             return 1;
         }
     }
@@ -397,9 +397,7 @@ static void udev_device_set_properties_from_evdev(struct udev_device *udev_devic
         udev_list_entry_add(&udev_device->properties, "ID_INPUT_POINTINGSTICK", "1", 0);
     }
 
-    if (find_bit(prop_bits, prop_cnt, INPUT_PROP_ACCELEROMETER) ||
-        (find_bit(abs_bits, abs_cnt, ABS_Z) && !find_bit(ev_bits, ev_cnt, EV_KEY) &&
-         find_bit(abs_bits, abs_cnt, ABS_Y) && find_bit(abs_bits, abs_cnt, ABS_X))) {
+    if (find_bit(prop_bits, prop_cnt, INPUT_PROP_ACCELEROMETER)) {
         udev_list_entry_add(&udev_device->properties, "ID_INPUT_ACCELEROMETER", "1", 0);
     }
 
@@ -407,24 +405,35 @@ static void udev_device_set_properties_from_evdev(struct udev_device *udev_devic
         udev_list_entry_add(&udev_device->properties, "ID_INPUT_SWITCH", "1", 0);
     }
 
-    if (find_bit(ev_bits, ev_cnt, EV_REL) && find_bit(rel_bits, rel_cnt, REL_Y) &&
-        find_bit(rel_bits, rel_cnt, REL_X) && find_bit(key_bits, key_cnt, BTN_MOUSE)) {
-        udev_list_entry_add(&udev_device->properties, "ID_INPUT_MOUSE", "1", 0);
-    }
-    else if (find_bit(ev_bits, ev_cnt, EV_ABS) && find_bit(abs_bits, abs_cnt, ABS_Y) && find_bit(abs_bits, abs_cnt, ABS_X)) {
-        if (find_bit(key_bits, key_cnt, BTN_STYLUS) || find_bit(key_bits, key_cnt, BTN_TOOL_PEN)) {
-            udev_list_entry_add(&udev_device->properties, "ID_INPUT_TABLET", "1", 0);
-        }
-        else if (find_bit(key_bits, key_cnt, BTN_TOUCH)) {
-            if (find_bit(key_bits, key_cnt, BTN_TOOL_FINGER)) {
-                udev_list_entry_add(&udev_device->properties, "ID_INPUT_TOUCHPAD", "1", 0);
-            }
-            else {
-                udev_list_entry_add(&udev_device->properties, "ID_INPUT_TOUCHSCREEN", "1", 0);
-            }
-        }
-        else if (find_bit(key_bits, key_cnt, BTN_MOUSE)) {
+    if (find_bit(ev_bits, ev_cnt, EV_REL)) {
+        if (find_bit(rel_bits, rel_cnt, REL_Y) && find_bit(rel_bits, rel_cnt, REL_X) &&
+            find_bit(key_bits, key_cnt, BTN_MOUSE)) {
             udev_list_entry_add(&udev_device->properties, "ID_INPUT_MOUSE", "1", 0);
+        }
+    }
+    else if (find_bit(ev_bits, ev_cnt, EV_ABS)) {
+        if (find_bit(key_bits, key_cnt, BTN_SELECT) || find_bit(key_bits, key_cnt, BTN_TR) ||
+            find_bit(key_bits, key_cnt, BTN_START) || find_bit(key_bits, key_cnt, BTN_TL)) {
+            udev_list_entry_add(&udev_device->properties, "ID_INPUT_JOYSTICK", "1", 0);
+        }
+        else if (find_bit(abs_bits, abs_cnt, ABS_Y) && find_bit(abs_bits, abs_cnt, ABS_X)) {
+            if (find_bit(abs_bits, abs_cnt, ABS_Z) && !find_bit(ev_bits, ev_cnt, EV_KEY)) {
+                udev_list_entry_add(&udev_device->properties, "ID_INPUT_ACCELEROMETER", "1", 0);
+            }
+            else if (find_bit(key_bits, key_cnt, BTN_STYLUS) || find_bit(key_bits, key_cnt, BTN_TOOL_PEN)) {
+                udev_list_entry_add(&udev_device->properties, "ID_INPUT_TABLET", "1", 0);
+            }
+            else if (find_bit(key_bits, key_cnt, BTN_TOUCH)) {
+                if (find_bit(key_bits, key_cnt, BTN_TOOL_FINGER)) {
+                    udev_list_entry_add(&udev_device->properties, "ID_INPUT_TOUCHPAD", "1", 0);
+                }
+                else {
+                    udev_list_entry_add(&udev_device->properties, "ID_INPUT_TOUCHSCREEN", "1", 0);
+                }
+            }
+            else if (find_bit(key_bits, key_cnt, BTN_MOUSE)) {
+                udev_list_entry_add(&udev_device->properties, "ID_INPUT_MOUSE", "1", 0);
+            }
         }
     }
     else if (find_bit(ev_bits, ev_cnt, EV_KEY)) {
