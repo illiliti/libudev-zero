@@ -9,7 +9,7 @@
 #include "udev.h"
 #include "udev_list.h"
 
-enum { BITS_SIZE = 96 };
+enum { BITS_MAX = 96 };
 
 struct udev_device {
     struct udev_list_entry properties;
@@ -148,7 +148,7 @@ int udev_device_get_is_initialized(struct udev_device *udev_device)
 
 const char *udev_device_get_action(struct udev_device *udev_device)
 {
-    return NULL;
+    return udev_device_get_property_value(udev_device, "ACTION");
 }
 
 int udev_device_has_tag(struct udev_device *udev_device, const char *tag)
@@ -328,7 +328,7 @@ static int populate_bit(unsigned long *arr, const char *val)
 
     bit = strtok_r(bits, " ", &save);
 
-    for (i = 0; bit && i < BITS_SIZE; i++) {
+    for (i = 0; bit && i < BITS_MAX; i++) {
         arr[i] = strtoul(bit, NULL, 16);
         bit = strtok_r(NULL, " ", &save);
     }
@@ -357,12 +357,12 @@ static int find_bit(unsigned long *arr, int cnt, int bit)
 static void udev_device_set_properties_from_evdev(struct udev_device *udev_device)
 {
     int ev_cnt, rel_cnt, key_cnt, abs_cnt, prop_cnt;
-    unsigned long prop_bits[BITS_SIZE] = {0};
-    unsigned long abs_bits[BITS_SIZE] = {0};
-    unsigned long rel_bits[BITS_SIZE] = {0};
-    unsigned long key_bits[BITS_SIZE] = {0};
-    unsigned long ev_bits[BITS_SIZE] = {0};
-    struct udev_device *parent;
+    unsigned long prop_bits[BITS_MAX] = {0};
+    unsigned long abs_bits[BITS_MAX] = {0};
+    unsigned long rel_bits[BITS_MAX] = {0};
+    unsigned long key_bits[BITS_MAX] = {0};
+    unsigned long ev_bits[BITS_MAX] = {0};
+    struct udev_device *tmp;
     const char *subsystem;
 
     subsystem = udev_device_get_subsystem(udev_device);
@@ -371,25 +371,25 @@ static void udev_device_set_properties_from_evdev(struct udev_device *udev_devic
         return;
     }
 
-    parent = udev_device_get_parent_with_subsystem_devtype(udev_device, "input", NULL);
+    tmp = udev_device;
 
     while (1) {
-        if (!parent) {
+        if (!tmp) {
             return;
         }
 
-        if (udev_device_get_property_value(parent, "EV")) {
+        if (udev_device_get_property_value(tmp, "EV")) {
             break;
         }
 
-        parent = udev_device_get_parent_with_subsystem_devtype(parent, "input", NULL);
+        tmp = udev_device_get_parent_with_subsystem_devtype(tmp, "input", NULL);
     }
 
-    ev_cnt = populate_bit(ev_bits, udev_device_get_property_value(parent, "EV"));
-    abs_cnt = populate_bit(abs_bits, udev_device_get_property_value(parent, "ABS"));
-    rel_cnt = populate_bit(rel_bits, udev_device_get_property_value(parent, "REL"));
-    key_cnt = populate_bit(key_bits, udev_device_get_property_value(parent, "KEY"));
-    prop_cnt = populate_bit(prop_bits, udev_device_get_property_value(parent, "PROP"));
+    ev_cnt = populate_bit(ev_bits, udev_device_get_property_value(tmp, "EV"));
+    abs_cnt = populate_bit(abs_bits, udev_device_get_property_value(tmp, "ABS"));
+    rel_cnt = populate_bit(rel_bits, udev_device_get_property_value(tmp, "REL"));
+    key_cnt = populate_bit(key_bits, udev_device_get_property_value(tmp, "KEY"));
+    prop_cnt = populate_bit(prop_bits, udev_device_get_property_value(tmp, "PROP"));
 
     udev_list_entry_add(&udev_device->properties, "ID_INPUT", "1", 0);
 
@@ -546,6 +546,69 @@ struct udev_device *udev_device_new_from_subsystem_sysname(struct udev *udev, co
     }
 
     return NULL;
+}
+
+struct udev_device *udev_device_new_from_file(struct udev *udev, const char *path)
+{
+    char line[LINE_MAX], tmp[PATH_MAX];
+    struct udev_device *udev_device;
+    char *key, *val, *sysname;
+    FILE *file;
+    int i;
+
+    udev_device = calloc(1, sizeof(struct udev_device));
+
+    if (!udev_device) {
+        return NULL;
+    }
+
+    udev_device->udev = udev;
+    udev_device->refcount = 1;
+    udev_device->parent = NULL;
+
+    udev_list_entry_init(&udev_device->properties);
+    udev_list_entry_init(&udev_device->sysattrs);
+
+    file = fopen(path, "r");
+
+    if (!file) {
+        return NULL;
+    }
+
+    while (fgets(line, sizeof(line), file)) {
+        line[strcspn(line, "\n")] = '\0';
+
+        if (strncmp(line, "DEVPATH", 7) == 0) {
+            snprintf(tmp, sizeof(tmp), "/sys%s", line + 8);
+            udev_list_entry_add(&udev_device->properties, "SYSPATH", tmp, 0);
+            udev_list_entry_add(&udev_device->properties, "DEVPATH", line + 8, 0);
+        }
+        else if (strncmp(line, "DEVNAME", 7) == 0) {
+            snprintf(tmp, sizeof(tmp), "/dev/%s", line + 8);
+            udev_list_entry_add(&udev_device->properties, "DEVNAME", tmp, 0);
+        }
+        else if (strchr(line, '=')) {
+            val = strchr(line, '=') + 1;
+            key = line;
+            key[strcspn(key, "=")] = '\0';
+
+            udev_list_entry_add(&udev_device->properties, key, val, 1);
+        }
+    }
+
+    fclose(file);
+    sysname = strrchr(udev_device_get_syspath(udev_device), '/');
+
+    for (i = 0; sysname[i] != '\0'; i++) {
+        if (sysname[i] >= '0' && sysname[i] <= '9') {
+            udev_list_entry_add(&udev_device->properties, "SYSNUM", sysname + i, 0);
+            break;
+        }
+    }
+
+    udev_list_entry_add(&udev_device->properties, "SYSNAME", sysname, 0);
+    udev_device_set_properties_from_evdev(udev_device);
+    return udev_device;
 }
 
 struct udev_device *udev_device_new_from_device_id(struct udev *udev, const char *id)
