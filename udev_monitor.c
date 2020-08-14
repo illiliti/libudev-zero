@@ -105,7 +105,7 @@ struct udev_device *udev_monitor_receive_device(struct udev_monitor *udev_monito
         return NULL;
     }
 
-    return NULL;
+    return udev_device;
 }
 
 int udev_monitor_enable_receiving(struct udev_monitor *udev_monitor)
