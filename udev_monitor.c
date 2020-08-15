@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <pthread.h>
+#include <sys/stat.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/inotify.h>
@@ -210,6 +211,7 @@ struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char
 {
     struct udev_monitor *udev_monitor;
     struct epoll_event epoll;
+    struct stat st;
 
     if (!udev || !name) {
         return NULL;
@@ -218,6 +220,22 @@ struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char
     udev_monitor = calloc(1, sizeof(struct udev_monitor));
 
     if (!udev_monitor) {
+        return NULL;
+    }
+
+    if (lstat(UDEV_MONITOR_DIR, &st) != 0) {
+        if (mkdir(UDEV_MONITOR_DIR, 0) == -1) {
+            free(udev_monitor);
+            return NULL;
+        }
+
+        if (chmod(UDEV_MONITOR_DIR, 0777) == -1) {
+            free(udev_monitor);
+            return NULL;
+        }
+    }
+    else if (!S_ISDIR(st.st_mode)) {
+        free(udev_monitor);
         return NULL;
     }
 
