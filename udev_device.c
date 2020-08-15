@@ -597,7 +597,7 @@ struct udev_device *udev_device_new_from_file(struct udev *udev, const char *pat
     }
 
     fclose(file);
-    sysname = strrchr(udev_device_get_syspath(udev_device), '/');
+    sysname = strrchr(udev_device_get_syspath(udev_device), '/') + 1;
 
     for (i = 0; sysname[i] != '\0'; i++) {
         if (sysname[i] >= '0' && sysname[i] <= '9') {
