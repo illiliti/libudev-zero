@@ -108,9 +108,52 @@ struct udev_device *udev_monitor_receive_device(struct udev_monitor *udev_monito
     return udev_device;
 }
 
+static void *udev_monitor_handle_event(void *ptr)
+{
+    struct udev_monitor *udev_monitor = ptr;
+    struct inotify_event *event;
+    struct epoll_event epoll;
+    char data[4096];
+    sigset_t mask;
+    ssize_t len;
+    int i;
+
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGUSR1);
+
+    while (epoll_pwait(udev_monitor->efd, &epoll, 1, -1, &mask) != -1) {
+        len = read(udev_monitor->ifd, data, sizeof(data));
+
+        if (len == -1) {
+            continue;
+        }
+
+        for (i = 0; i < len; i += sizeof(struct inotify_event) + event->len) {
+            event = (struct inotify_event *)&data[i];
+            send(udev_monitor->sfd[1], event->name, event->len, 0);
+        }
+    }
+
+    return NULL;
+}
+
 int udev_monitor_enable_receiving(struct udev_monitor *udev_monitor)
 {
-    // TODO pthread_create should be here
+    pthread_attr_t attr;
+    int i;
+
+    if (!udev_monitor) {
+        return -1;
+    }
+
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+    for (i = 0; i < THREADS_MAX; i++) {
+        pthread_create(&udev_monitor->thread[i], &attr, udev_monitor_handle_event, udev_monitor);
+    }
+
+    pthread_attr_destroy(&attr);
     return 0;
 }
 
@@ -163,41 +206,10 @@ int udev_monitor_filter_add_match_tag(struct udev_monitor *udev_monitor, const c
     return 0;
 }
 
-static void *udev_monitor_handle_event(void *ptr)
-{
-    struct udev_monitor *udev_monitor = ptr;
-    struct inotify_event *event;
-    struct epoll_event epoll;
-    char data[4096];
-    sigset_t mask;
-    ssize_t len;
-    int i;
-
-    sigemptyset(&mask);
-    sigaddset(&mask, SIGUSR1);
-
-    while (epoll_pwait(udev_monitor->efd, &epoll, 1, -1, &mask) != -1) {
-        len = read(udev_monitor->ifd, data, sizeof(data));
-
-        if (len == -1) {
-            continue;
-        }
-
-        for (i = 0; i < len; i += sizeof(struct inotify_event) + event->len) {
-            event = (struct inotify_event *)&data[i];
-            send(udev_monitor->sfd[1], event->name, event->len, 0);
-        }
-    }
-
-    return NULL;
-}
-
 struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char *name)
 {
     struct udev_monitor *udev_monitor;
     struct epoll_event epoll;
-    pthread_attr_t attr;
-    int i;
 
     if (!udev || !name) {
         return NULL;
@@ -246,14 +258,6 @@ struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char
         return NULL;
     }
 
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-
-    for (i = 0; i < THREADS_MAX; i++) {
-        pthread_create(&udev_monitor->thread[i], &attr, udev_monitor_handle_event, udev_monitor);
-    }
-
-    pthread_attr_destroy(&attr);
     udev_monitor->refcount = 1;
     udev_monitor->udev = udev;
     return udev_monitor;
