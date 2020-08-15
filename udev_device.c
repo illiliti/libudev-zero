@@ -297,7 +297,7 @@ static void udev_device_set_properties_from_uevent(struct udev_device *udev_devi
 
         if (strncmp(line, "DEVNAME", 7) == 0) {
             snprintf(devnode, sizeof(devnode), "/dev/%s", line + 8);
-            udev_list_entry_add(&udev_device->properties, "DEVNAME", devnode, 0);
+            udev_list_entry_add(&udev_device->properties, "DEVNAME", devnode, 1);
         }
         else if (strchr(line, '=')) {
             val = strchr(line, '=') + 1;
@@ -551,8 +551,9 @@ struct udev_device *udev_device_new_from_subsystem_sysname(struct udev *udev, co
 struct udev_device *udev_device_new_from_file(struct udev *udev, const char *path)
 {
     char line[LINE_MAX], tmp[PATH_MAX];
+    char *subsystem, *driver, *sysname;
     struct udev_device *udev_device;
-    char *key, *val, *sysname;
+    char *key, *val;
     FILE *file;
     int i;
 
@@ -582,6 +583,16 @@ struct udev_device *udev_device_new_from_file(struct udev *udev, const char *pat
             snprintf(tmp, sizeof(tmp), "/sys%s", line + 8);
             udev_list_entry_add(&udev_device->properties, "SYSPATH", tmp, 0);
             udev_list_entry_add(&udev_device->properties, "DEVPATH", line + 8, 0);
+
+            sysname = strrchr(tmp, '/') + 1;
+            udev_list_entry_add(&udev_device->properties, "SYSNAME", sysname, 0);
+
+            for (i = 0; sysname[i] != '\0'; i++) {
+                if (sysname[i] >= '0' && sysname[i] <= '9') {
+                    udev_list_entry_add(&udev_device->properties, "SYSNUM", sysname + i, 0);
+                    break;
+                }
+            }
         }
         else if (strncmp(line, "DEVNAME", 7) == 0) {
             snprintf(tmp, sizeof(tmp), "/dev/%s", line + 8);
@@ -596,18 +607,28 @@ struct udev_device *udev_device_new_from_file(struct udev *udev, const char *pat
         }
     }
 
-    fclose(file);
-    sysname = strrchr(udev_device_get_syspath(udev_device), '/') + 1;
+    if (!udev_device_get_driver(udev_device)) {
+        driver = udev_device_read_symlink(udev_device, "driver");
 
-    for (i = 0; sysname[i] != '\0'; i++) {
-        if (sysname[i] >= '0' && sysname[i] <= '9') {
-            udev_list_entry_add(&udev_device->properties, "SYSNUM", sysname + i, 0);
-            break;
+        if (driver) {
+            udev_list_entry_add(&udev_device->properties, "DRIVER", driver, 0);
+            free(driver);
         }
     }
 
-    udev_list_entry_add(&udev_device->properties, "SYSNAME", sysname, 0);
+    if (!udev_device_get_subsystem(udev_device)) {
+        subsystem = udev_device_read_symlink(udev_device, "subsystem");
+
+        if (subsystem) {
+            udev_list_entry_add(&udev_device->properties, "SUBSYSTEM", subsystem, 0);
+            free(subsystem);
+        }
+    }
+
+    udev_device_set_properties_from_uevent(udev_device);
     udev_device_set_properties_from_evdev(udev_device);
+
+    fclose(file);
     return udev_device;
 }
 
