@@ -193,7 +193,9 @@ const char *udev_device_get_sysattr_value(struct udev_device *udev_device, const
     struct udev_list_entry *list_entry;
     char data[BUFSIZ], path[PATH_MAX];
     struct stat st;
+    size_t len;
     FILE *file;
+    char *pos;
 
     if (!udev_device || !sysattr) {
         return NULL;
@@ -217,13 +219,21 @@ const char *udev_device_get_sysattr_value(struct udev_device *udev_device, const
         return NULL;
     }
 
-    if (fread(data, 1, sizeof(data), file) != sizeof(data) && ferror(file)) {
+    len = fread(data, 1, sizeof(data), file);
+
+    if (len != sizeof(data) && ferror(file)) {
         fclose(file);
         return NULL;
     }
 
+    if ((pos = memchr(data, '\n', len))) {
+        *pos = '\0';
+    }
+    else {
+        data[len] = '\0';
+    }
+
     fclose(file);
-    data[strcspn(data, "\n")] = '\0';
     list_entry = udev_list_entry_add(&udev_device->sysattrs, sysattr, data, 0);
     return udev_list_entry_get_value(list_entry);
 }
