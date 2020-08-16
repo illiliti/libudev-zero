@@ -282,7 +282,7 @@ static char *udev_device_read_symlink(struct udev_device *udev_device, const cha
 static void udev_device_set_properties_from_uevent(struct udev_device *udev_device)
 {
     char line[LINE_MAX], path[PATH_MAX];
-    char *key, *val, devnode[PATH_MAX];
+    char *pos, devnode[PATH_MAX];
     FILE *file;
 
     snprintf(path, sizeof(path), "%s/uevent", udev_device_get_syspath(udev_device));
@@ -299,12 +299,9 @@ static void udev_device_set_properties_from_uevent(struct udev_device *udev_devi
             snprintf(devnode, sizeof(devnode), "/dev/%s", line + 8);
             udev_list_entry_add(&udev_device->properties, "DEVNAME", devnode, 1);
         }
-        else if (strchr(line, '=')) {
-            val = strchr(line, '=') + 1;
-            key = line;
-            key[strcspn(key, "=")] = '\0';
-
-            udev_list_entry_add(&udev_device->properties, key, val, 1);
+        else if ((pos = strchr(line, '='))) {
+            *pos = '\0';
+            udev_list_entry_add(&udev_device->properties, line, pos + 1, 1);
         }
     }
 
@@ -553,8 +550,8 @@ struct udev_device *udev_device_new_from_file(struct udev *udev, const char *pat
     char line[LINE_MAX], tmp[PATH_MAX];
     char *subsystem, *driver, *sysname;
     struct udev_device *udev_device;
-    char *key, *val;
     FILE *file;
+    char *pos;
     int i;
 
     udev_device = calloc(1, sizeof(struct udev_device));
@@ -598,12 +595,9 @@ struct udev_device *udev_device_new_from_file(struct udev *udev, const char *pat
             snprintf(tmp, sizeof(tmp), "/dev/%s", line + 8);
             udev_list_entry_add(&udev_device->properties, "DEVNAME", tmp, 0);
         }
-        else if (strchr(line, '=')) {
-            val = strchr(line, '=') + 1;
-            key = line;
-            key[strcspn(key, "=")] = '\0';
-
-            udev_list_entry_add(&udev_device->properties, key, val, 1);
+        else if ((pos = strchr(line, '='))) {
+            *pos = '\0';
+            udev_list_entry_add(&udev_device->properties, line, pos + 1, 1);
         }
     }
 
