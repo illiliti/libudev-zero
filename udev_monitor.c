@@ -128,7 +128,7 @@ static void *udev_monitor_handle_event(void *ptr)
     while (epoll_wait(udev_monitor->efd, epoll, 2, -1) != -1) {
         for (i = 0; i < 2; i++) {
             if (epoll[i].data.fd == udev_monitor->pfd[0]) {
-                read(udev_monitor->pfd[0], data, sizeof(data));
+                read(udev_monitor->pfd[0], data, 1);
                 write(udev_monitor->pfd[1], "1", 1);
 
                 pthread_barrier_wait(&udev_monitor->barrier);
