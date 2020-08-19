@@ -1,4 +1,3 @@
-#include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
 #include <signal.h>
@@ -24,11 +23,12 @@ struct udev_monitor {
     struct udev_list_entry subsystem_match;
     struct udev_list_entry devtype_match;
     pthread_t thread[THREADS_MAX];
-    pthread_barrier_t barrier;
+    pthread_cond_t condition;
+    pthread_mutex_t mutex;
     struct udev *udev;
+    int thread_alive;
     int refcount;
     int sfd[2];
-    int pfd[2];
     int ifd;
     int efd;
 };
@@ -112,30 +112,30 @@ struct udev_device *udev_monitor_receive_device(struct udev_monitor *udev_monito
     return udev_device;
 }
 
+static void udev_monitor_abort_thread(void *ptr)
+{
+    struct udev_monitor *udev_monitor = ptr;
+
+    pthread_mutex_lock(&udev_monitor->mutex);
+    udev_monitor->thread_alive--;
+    pthread_cond_signal(&udev_monitor->condition);
+    pthread_mutex_unlock(&udev_monitor->mutex);
+}
+
 static void *udev_monitor_handle_event(void *ptr)
 {
     struct udev_monitor *udev_monitor = ptr;
     struct inotify_event *event;
-    struct epoll_event epoll[2];
+    struct epoll_event epoll;
     char data[4096];
     sigset_t mask;
     ssize_t len;
     int i;
 
-    sigfillset(&mask);
-    pthread_sigmask(SIG_BLOCK, &mask, NULL);
+    sigemptyset(&mask);
+    pthread_cleanup_push(udev_monitor_abort_thread, udev_monitor);
 
-    while (epoll_wait(udev_monitor->efd, epoll, 2, -1) != -1) {
-        for (i = 0; i < 2; i++) {
-            if (epoll[i].data.fd == udev_monitor->pfd[0]) {
-                read(udev_monitor->pfd[0], data, 1);
-                write(udev_monitor->pfd[1], "1", 1);
-
-                pthread_barrier_wait(&udev_monitor->barrier);
-                return NULL;
-            }
-        }
-
+    while (epoll_pwait(udev_monitor->efd, &epoll, 1, -1, &mask) != -1) {
         len = read(udev_monitor->ifd, data, sizeof(data));
 
         if (len == -1) {
@@ -148,7 +148,7 @@ static void *udev_monitor_handle_event(void *ptr)
         }
     }
 
-    pthread_barrier_wait(&udev_monitor->barrier);
+    pthread_cleanup_pop(1);
     return NULL;
 }
 
@@ -161,9 +161,12 @@ int udev_monitor_enable_receiving(struct udev_monitor *udev_monitor)
         return -1;
     }
 
+    udev_monitor->thread_alive = THREADS_MAX;
+
     pthread_attr_init(&attr);
+    pthread_mutex_init(&udev_monitor->mutex, NULL);
+    pthread_cond_init(&udev_monitor->condition, NULL);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    pthread_barrier_init(&udev_monitor->barrier, NULL, THREADS_MAX + 1);
 
     for (i = 0; i < THREADS_MAX; i++) {
         pthread_create(&udev_monitor->thread[i], &attr, udev_monitor_handle_event, udev_monitor);
@@ -225,9 +228,8 @@ int udev_monitor_filter_add_match_tag(struct udev_monitor *udev_monitor, const c
 struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char *name)
 {
     struct udev_monitor *udev_monitor;
-    struct epoll_event epoll[2];
+    struct epoll_event epoll;
     struct stat st;
-    int i;
 
     if (!udev || !name) {
         return NULL;
@@ -273,30 +275,9 @@ struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char
         return NULL;
     }
 
-    if (pipe(udev_monitor->pfd) == -1) {
-        close(udev_monitor->ifd);
-        close(udev_monitor->efd);
-        free(udev_monitor);
-        return NULL;
-    }
+    epoll.events = EPOLLIN | EPOLLET;
 
-    for (i = 0; i < 2; i++) {
-        fcntl(udev_monitor->pfd[i], F_SETFD, FD_CLOEXEC);
-        fcntl(udev_monitor->pfd[i], F_SETFL, O_NONBLOCK);
-    }
-
-    for (i = 0; i < 2; i++) {
-        epoll[i].events = EPOLLIN | EPOLLET;
-    }
-
-    epoll[1].data.fd = udev_monitor->pfd[0];
-
-    if (epoll_ctl(udev_monitor->efd, EPOLL_CTL_ADD, udev_monitor->ifd, &epoll[0]) == -1 ||
-        epoll_ctl(udev_monitor->efd, EPOLL_CTL_ADD, udev_monitor->pfd[0], &epoll[1]) == -1) {
-        for (i = 0; i < 2; i++) {
-            close(udev_monitor->pfd[i]);
-        }
-
+    if (epoll_ctl(udev_monitor->efd, EPOLL_CTL_ADD, udev_monitor->ifd, &epoll) == -1) {
         close(udev_monitor->ifd);
         close(udev_monitor->efd);
         free(udev_monitor);
@@ -304,10 +285,6 @@ struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char
     }
 
     if (socketpair(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC | SOCK_NONBLOCK, 0, udev_monitor->sfd) == -1) {
-        for (i = 0; i < 2; i++) {
-            close(udev_monitor->pfd[i]);
-        }
-
         close(udev_monitor->ifd);
         close(udev_monitor->efd);
         free(udev_monitor);
@@ -344,14 +321,22 @@ struct udev_monitor *udev_monitor_unref(struct udev_monitor *udev_monitor)
     udev_list_entry_free_all(&udev_monitor->subsystem_match);
     udev_list_entry_free_all(&udev_monitor->devtype_match);
 
-    write(udev_monitor->pfd[1], "1", 1);
+    for (i = 0; i < THREADS_MAX; i++) {
+        pthread_cancel(udev_monitor->thread[i]);
+    }
 
-    pthread_barrier_wait(&udev_monitor->barrier);
-    pthread_barrier_destroy(&udev_monitor->barrier);
+    pthread_mutex_lock(&udev_monitor->mutex);
+
+    while (udev_monitor->thread_alive) {
+        pthread_cond_wait(&udev_monitor->condition, &udev_monitor->mutex);
+    }
+
+    pthread_mutex_unlock(&udev_monitor->mutex);
+    pthread_mutex_destroy(&udev_monitor->mutex);
+    pthread_cond_destroy(&udev_monitor->condition);
 
     for (i = 0; i < 2; i++) {
         close(udev_monitor->sfd[i]);
-        close(udev_monitor->pfd[i]);
     }
 
     close(udev_monitor->ifd);
