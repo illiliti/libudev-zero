@@ -23,10 +23,8 @@ struct udev_monitor {
     struct udev_list_entry subsystem_match;
     struct udev_list_entry devtype_match;
     pthread_t thread[THREADS_MAX];
-    pthread_cond_t condition;
-    pthread_mutex_t mutex;
+    pthread_barrier_t barrier;
     struct udev *udev;
-    int thread_alive;
     int refcount;
     int sfd[2];
     int ifd;
@@ -112,16 +110,6 @@ struct udev_device *udev_monitor_receive_device(struct udev_monitor *udev_monito
     return udev_device;
 }
 
-static void udev_monitor_abort_thread(void *ptr)
-{
-    struct udev_monitor *udev_monitor = ptr;
-
-    pthread_mutex_lock(&udev_monitor->mutex);
-    udev_monitor->thread_alive--;
-    pthread_cond_signal(&udev_monitor->condition);
-    pthread_mutex_unlock(&udev_monitor->mutex);
-}
-
 static void *udev_monitor_handle_event(void *ptr)
 {
     struct udev_monitor *udev_monitor = ptr;
@@ -133,7 +121,6 @@ static void *udev_monitor_handle_event(void *ptr)
     int i;
 
     sigemptyset(&mask);
-    pthread_cleanup_push(udev_monitor_abort_thread, udev_monitor);
 
     while (epoll_pwait(udev_monitor->efd, &epoll, 1, -1, &mask) != -1) {
         len = read(udev_monitor->ifd, data, sizeof(data));
@@ -148,7 +135,7 @@ static void *udev_monitor_handle_event(void *ptr)
         }
     }
 
-    pthread_cleanup_pop(1);
+    pthread_barrier_wait(&udev_monitor->barrier);
     return NULL;
 }
 
@@ -161,12 +148,9 @@ int udev_monitor_enable_receiving(struct udev_monitor *udev_monitor)
         return -1;
     }
 
-    udev_monitor->thread_alive = THREADS_MAX;
-
     pthread_attr_init(&attr);
-    pthread_mutex_init(&udev_monitor->mutex, NULL);
-    pthread_cond_init(&udev_monitor->condition, NULL);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    pthread_barrier_init(&udev_monitor->barrier, NULL, THREADS_MAX + 1);
 
     for (i = 0; i < THREADS_MAX; i++) {
         pthread_create(&udev_monitor->thread[i], &attr, udev_monitor_handle_event, udev_monitor);
@@ -325,15 +309,8 @@ struct udev_monitor *udev_monitor_unref(struct udev_monitor *udev_monitor)
         pthread_cancel(udev_monitor->thread[i]);
     }
 
-    pthread_mutex_lock(&udev_monitor->mutex);
-
-    while (udev_monitor->thread_alive) {
-        pthread_cond_wait(&udev_monitor->condition, &udev_monitor->mutex);
-    }
-
-    pthread_mutex_unlock(&udev_monitor->mutex);
-    pthread_mutex_destroy(&udev_monitor->mutex);
-    pthread_cond_destroy(&udev_monitor->condition);
+    pthread_barrier_wait(&udev_monitor->barrier);
+    pthread_barrier_destroy(&udev_monitor->barrier);
 
     for (i = 0; i < 2; i++) {
         close(udev_monitor->sfd[i]);
