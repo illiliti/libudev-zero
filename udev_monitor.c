@@ -131,6 +131,12 @@ static void *udev_monitor_handle_event(void *ptr)
 
         for (i = 0; i < len; i += sizeof(struct inotify_event) + event->len) {
             event = (struct inotify_event *)&data[i];
+
+            // TODO user deleted directory, what should we do ?
+            if (event->mask & IN_IGNORED) {
+                break;
+            }
+
             send(udev_monitor->sfd[1], event->name, event->len, 0);
         }
     }
