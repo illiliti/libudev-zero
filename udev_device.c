@@ -307,7 +307,7 @@ static void udev_device_set_properties_from_uevent(struct udev_device *udev_devi
 
         if (strncmp(line, "DEVNAME", 7) == 0) {
             snprintf(devnode, sizeof(devnode), "/dev/%s", line + 8);
-            udev_list_entry_add(&udev_device->properties, "DEVNAME", devnode, 1);
+            udev_list_entry_add(&udev_device->properties, "DEVNAME", devnode, 0);
         }
         else if ((pos = strchr(line, '='))) {
             *pos = '\0';
@@ -369,7 +369,7 @@ static void udev_device_set_properties_from_evdev(struct udev_device *udev_devic
     unsigned long rel_bits[BITS_MAX] = {0};
     unsigned long key_bits[BITS_MAX] = {0};
     unsigned long ev_bits[BITS_MAX] = {0};
-    struct udev_device *tmp;
+    struct udev_device *parent;
     const char *subsystem;
 
     subsystem = udev_device_get_subsystem(udev_device);
@@ -378,25 +378,25 @@ static void udev_device_set_properties_from_evdev(struct udev_device *udev_devic
         return;
     }
 
-    tmp = udev_device;
+    parent = udev_device;
 
     while (1) {
-        if (!tmp) {
+        if (!parent) {
             return;
         }
 
-        if (udev_device_get_property_value(tmp, "EV")) {
+        if (udev_device_get_property_value(parent, "EV")) {
             break;
         }
 
-        tmp = udev_device_get_parent_with_subsystem_devtype(tmp, "input", NULL);
+        parent = udev_device_get_parent_with_subsystem_devtype(parent, "input", NULL);
     }
 
-    ev_cnt = populate_bit(ev_bits, udev_device_get_property_value(tmp, "EV"));
-    abs_cnt = populate_bit(abs_bits, udev_device_get_property_value(tmp, "ABS"));
-    rel_cnt = populate_bit(rel_bits, udev_device_get_property_value(tmp, "REL"));
-    key_cnt = populate_bit(key_bits, udev_device_get_property_value(tmp, "KEY"));
-    prop_cnt = populate_bit(prop_bits, udev_device_get_property_value(tmp, "PROP"));
+    ev_cnt = populate_bit(ev_bits, udev_device_get_property_value(parent, "EV"));
+    abs_cnt = populate_bit(abs_bits, udev_device_get_property_value(parent, "ABS"));
+    rel_cnt = populate_bit(rel_bits, udev_device_get_property_value(parent, "REL"));
+    key_cnt = populate_bit(key_bits, udev_device_get_property_value(parent, "KEY"));
+    prop_cnt = populate_bit(prop_bits, udev_device_get_property_value(parent, "PROP"));
 
     udev_list_entry_add(&udev_device->properties, "ID_INPUT", "1", 0);
 
@@ -557,11 +557,10 @@ struct udev_device *udev_device_new_from_subsystem_sysname(struct udev *udev, co
 
 struct udev_device *udev_device_new_from_file(struct udev *udev, const char *path)
 {
-    char line[LINE_MAX], tmp[PATH_MAX];
-    char *subsystem, *driver, *sysname;
+    char line[LINE_MAX], syspath[PATH_MAX], devnode[PATH_MAX];
     struct udev_device *udev_device;
+    char *pos, *sysname;
     FILE *file;
-    char *pos;
     int i;
 
     udev_device = calloc(1, sizeof(struct udev_device));
@@ -587,11 +586,11 @@ struct udev_device *udev_device_new_from_file(struct udev *udev, const char *pat
         line[strcspn(line, "\n")] = '\0';
 
         if (strncmp(line, "DEVPATH", 7) == 0) {
-            snprintf(tmp, sizeof(tmp), "/sys%s", line + 8);
-            udev_list_entry_add(&udev_device->properties, "SYSPATH", tmp, 0);
+            snprintf(syspath, sizeof(syspath), "/sys%s", line + 8);
+            udev_list_entry_add(&udev_device->properties, "SYSPATH", syspath, 0);
             udev_list_entry_add(&udev_device->properties, "DEVPATH", line + 8, 0);
 
-            sysname = strrchr(tmp, '/') + 1;
+            sysname = strrchr(syspath, '/') + 1;
             udev_list_entry_add(&udev_device->properties, "SYSNAME", sysname, 0);
 
             for (i = 0; sysname[i] != '\0'; i++) {
@@ -602,37 +601,23 @@ struct udev_device *udev_device_new_from_file(struct udev *udev, const char *pat
             }
         }
         else if (strncmp(line, "DEVNAME", 7) == 0) {
-            snprintf(tmp, sizeof(tmp), "/dev/%s", line + 8);
-            udev_list_entry_add(&udev_device->properties, "DEVNAME", tmp, 0);
+            snprintf(devnode, sizeof(devnode), "/dev/%s", line + 8);
+            udev_list_entry_add(&udev_device->properties, "DEVNAME", devnode, 0);
         }
         else if ((pos = strchr(line, '='))) {
             *pos = '\0';
-            udev_list_entry_add(&udev_device->properties, line, pos + 1, 1);
+            udev_list_entry_add(&udev_device->properties, line, pos + 1, 0);
         }
     }
-
-    if (!udev_device_get_driver(udev_device)) {
-        driver = udev_device_read_symlink(udev_device, "driver");
-
-        if (driver) {
-            udev_list_entry_add(&udev_device->properties, "DRIVER", driver, 0);
-            free(driver);
-        }
-    }
-
-    if (!udev_device_get_subsystem(udev_device)) {
-        subsystem = udev_device_read_symlink(udev_device, "subsystem");
-
-        if (subsystem) {
-            udev_list_entry_add(&udev_device->properties, "SUBSYSTEM", subsystem, 0);
-            free(subsystem);
-        }
-    }
-
-    udev_device_set_properties_from_uevent(udev_device);
-    udev_device_set_properties_from_evdev(udev_device);
 
     fclose(file);
+
+    if (!udev_device_get_syspath(udev_device)) {
+        udev_device_unref(udev_device);
+        return NULL;
+    }
+
+    udev_device_set_properties_from_evdev(udev_device);
     return udev_device;
 }
 
