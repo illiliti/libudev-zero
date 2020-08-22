@@ -8,7 +8,9 @@ What Works
 ----------
 
 * [x] xorg-server
+* [ ] dosfstools - need implement udev_enumerate_add_match_parent()
 * [x] libinput
+* [x] usbutils
 * [x] wlroots
 * [x] weston
 * [x] libusb
