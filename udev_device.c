@@ -560,12 +560,18 @@ struct udev_device *udev_device_new_from_file(struct udev *udev, const char *pat
     char line[LINE_MAX], syspath[PATH_MAX], devnode[PATH_MAX];
     struct udev_device *udev_device;
     char *pos, *sysname;
+    struct stat st;
     FILE *file;
     int i;
 
     udev_device = calloc(1, sizeof(struct udev_device));
 
     if (!udev_device) {
+        return NULL;
+    }
+
+    if (stat(path, &st) != 0 || st.st_size > 8192) {
+        free(udev_device);
         return NULL;
     }
 
