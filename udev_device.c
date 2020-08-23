@@ -569,18 +569,19 @@ struct udev_device *udev_device_new_from_file(struct udev *udev, const char *pat
         return NULL;
     }
 
+    file = fopen(path, "r");
+
+    if (!file) {
+        free(udev_device);
+        return NULL;
+    }
+
     udev_device->udev = udev;
     udev_device->refcount = 1;
     udev_device->parent = NULL;
 
     udev_list_entry_init(&udev_device->properties);
     udev_list_entry_init(&udev_device->sysattrs);
-
-    file = fopen(path, "r");
-
-    if (!file) {
-        return NULL;
-    }
 
     while (fgets(line, sizeof(line), file)) {
         line[strcspn(line, "\n")] = '\0';
