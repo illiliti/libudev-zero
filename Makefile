@@ -37,14 +37,10 @@ libudev.pc: libudev.pc.in
 install: libudev.so libudev.a libudev.pc
 	mkdir -p         ${DESTDIR}${INCLUDEDIR} ${DESTDIR}${LIBDIR}/pkgconfig
 	cp -f udev.h  	 ${DESTDIR}${INCLUDEDIR}/libudev.h
-	chmod 0644       ${DESTDIR}${INCLUDEDIR}/libudev.h
 	cp -f libudev.a  ${DESTDIR}${LIBDIR}/libudev.a
-	chmod 0644       ${DESTDIR}${LIBDIR}/libudev.a
 	cp -f libudev.so ${DESTDIR}${LIBDIR}/libudev.so
-	chmod 0755       ${DESTDIR}${LIBDIR}/libudev.so
 	ln -s libudev.so ${DESTDIR}${LIBDIR}/libudev.so.1
 	cp -f libudev.pc ${DESTDIR}${LIBDIR}/pkgconfig/
-	chmod 0644       ${DESTDIR}${LIBDIR}/pkgconfig/libudev.pc
 
 uninstall:
 	rm -f ${DESTDIR}${LIBDIR}/libudev.a \
