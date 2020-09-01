@@ -80,7 +80,7 @@ struct udev *udev_device_get_udev(struct udev_device *udev_device)
 
 struct udev_device *udev_device_get_parent(struct udev_device *udev_device)
 {
-    char *path, *syspath;
+    char *pos, *path, *syspath;
 
     if (!udev_device) {
         return NULL;
@@ -95,8 +95,8 @@ struct udev_device *udev_device_get_parent(struct udev_device *udev_device)
     path = syspath + 5;
 
     do {
-        if ((path = strrchr(path, '/'))) {
-            *path = '\0';
+        if ((pos = strrchr(path, '/'))) {
+            *pos = '\0';
         }
         else {
             break;
@@ -452,6 +452,29 @@ static void udev_device_set_properties_from_evdev(struct udev_device *udev_devic
     }
 }
 
+static void udev_device_set_properties_from_props(struct udev_device *udev_device)
+{
+    const char *sysname, *subsystem;
+    struct udev_device *parent;
+    char id[256];
+
+    subsystem = udev_device_get_subsystem(udev_device);
+
+    if (!subsystem || strcmp(subsystem, "drm") != 0) {
+        return;
+    }
+
+    parent = udev_device_get_parent_with_subsystem_devtype(udev_device, "pci", NULL);
+    sysname = udev_device_get_sysname(parent);
+
+    if (!sysname) {
+        return;
+    }
+
+    snprintf(id, sizeof(id), "pci-%s", sysname);
+    udev_list_entry_add(&udev_device->properties, "ID_PATH", id, 0);
+}
+
 struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *syspath)
 {
     char path[PATH_MAX], file[PATH_MAX];
@@ -506,6 +529,7 @@ struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *
 
     udev_device_set_properties_from_uevent(udev_device);
     udev_device_set_properties_from_evdev(udev_device);
+    udev_device_set_properties_from_props(udev_device);
 
     free(driver);
     free(subsystem);
@@ -624,6 +648,7 @@ struct udev_device *udev_device_new_from_file(struct udev *udev, const char *pat
         return NULL;
     }
 
+    udev_device_set_properties_from_props(udev_device);
     udev_device_set_properties_from_evdev(udev_device);
     return udev_device;
 }
