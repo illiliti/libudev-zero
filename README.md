@@ -1,8 +1,30 @@
 libudev-zero
 ============
 
-Drop-in replacement for libudev enables you to use whatever
-device manager you like without worrying about udev dependency at all!
+Drop-in replacement for libudev enables you to use any device manager you like
+without worrying about udev dependency at all!
+
+Why ?
+
+Because udev sucks, bloated and overengineered. udev is just like
+systemd, lock you into using non-portable crap that you can't avoid
+because many software depends on it. Look, even FreeBSD was forced to
+rewrite[1] this crappy library because libinput has mandatory udev dependency.
+Without libinput you can't use wayland and some other cool stuff.
+
+Michael Forney (cproc, samurai, Oasis Linux, ... author) decided to fork[2]
+libinput and remove udev mandatority. This is solution ? Yes. This is long term
+solution ? No. Patching upstream changes eventually will become absolutely
+nightmare. Also this fork has a lot of disadvantages like requiring static
+configuration which means you can't rely on automatic input devices
+discovering.
+
+Thanks god udev has stable API and hopefully no changes will be made in
+future. On this basis i decided to create this clean-room implementation of
+libudev which can be used with any or without device manager.
+
+[1] https://github.com/FreeBSDDesktop/libudev-devd
+[2] https://github.com/oasislinux/libinput
 
 What Works
 ----------
@@ -91,3 +113,5 @@ Donate
 You can donate if you like this project
 
 BTC: 1BwrcsgtWZeLVvNeEQSg4A28a3yrGN3FpK
+
+Thank you very much !
