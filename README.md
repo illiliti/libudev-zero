@@ -51,12 +51,12 @@ Default is `/tmp/.libudev-zero`. You can change it at build time by appending
 to regular fs (i.e non-tmpfs) because unneeded files aren't automatically discarded
 after reboot or termination (yet).
 
-* mdev
+1. mdev
 
   - merge [mdev.conf](contrib/mdev.conf) with your mdev.conf
   - restart mdev daemon
 
-* CONFIG_UEVENT_HELPER
+1. CONFIG_UEVENT_HELPER
 
   - ensure that CONFIG_UEVENT_HELPER enabled in kernel
   - add full path of [helper.sh](contrib/helper.sh) (must be executable) or
@@ -69,8 +69,8 @@ after reboot or termination (yet).
     echo "/full/path/to/helper <dir>" > /proc/sys/kernel/hotplug # change <dir> to your UDEV_MONITOR_DIR
     ```
 
-* run application which uses hotplugging (e.g xorg-server)
-* unplug and plug something to test working capacity
+2. run application which uses hotplugging (e.g xorg-server)
+3. unplug and plug something to test working capacity
 
 That's all! If you realized that this doesn't work for you,
 you can always open an issue and describe your bug.
