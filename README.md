@@ -23,7 +23,7 @@ Thanks god udev has stable API and hopefully no changes will be made in
 future. On this basis i decided to create this clean-room implementation of
 libudev which can be used with any or without device manager.
 
-[1] https://github.com/FreeBSDDesktop/libudev-devd
+[1] https://github.com/FreeBSDDesktop/libudev-devd  
 [2] https://github.com/oasislinux/libinput
 
 What Works
