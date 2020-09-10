@@ -39,6 +39,9 @@ make PREFIX=/usr install # will overwrite existing udev libraries if any
 Hotplugging
 -----------
 
+Note that hotplugging support is fully optional! You can skip this step if you
+don't have anything to hotplug.
+
 There is no complicated or overengineered way to use hotplugging. Everything is
 portable as much as possible. To use hotplugging the only thing you need is
 uevent's receiver (device manager, busybox `uevent`, CONFIG_UEVENT_HELPER, ...).
