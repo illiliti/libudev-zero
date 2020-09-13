@@ -86,6 +86,10 @@ struct udev_device *udev_device_get_parent(struct udev_device *udev_device)
         return NULL;
     }
 
+    if (udev_device->parent) {
+        return udev_device->parent;
+    }
+
     syspath = strdup(udev_device_get_syspath(udev_device));
 
     if (!syspath) {
