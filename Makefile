@@ -17,7 +17,7 @@ OBJ = \
 	  udev_monitor.o \
 	  udev_enumerate.o
 
-all: libudev.so libudev.a libudev.pc
+all: libudev.so libudev.a
 
 .c.o:
 	${CC} ${XCFLAGS} -c -o $@ $<
@@ -39,7 +39,7 @@ install: libudev.so libudev.a libudev.pc
 	cp -f udev.h  	 ${DESTDIR}${INCLUDEDIR}/libudev.h
 	cp -f libudev.a  ${DESTDIR}${LIBDIR}/libudev.a
 	cp -f libudev.so ${DESTDIR}${LIBDIR}/libudev.so
-	ln -s libudev.so ${DESTDIR}${LIBDIR}/libudev.so.1
+	ln -fs libudev.so ${DESTDIR}${LIBDIR}/libudev.so.1
 	cp -f libudev.pc ${DESTDIR}${LIBDIR}/pkgconfig/
 
 uninstall:
