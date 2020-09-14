@@ -52,7 +52,7 @@ Installation
 ------------
 
 ```sh
-make
+make PREFIX=/usr
 make PREFIX=/usr install # will overwrite existing udev libraries if any
 # rebuild all packages which depends on udev
 # here we go !
