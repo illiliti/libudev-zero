@@ -94,7 +94,7 @@ struct udev_device *udev_monitor_receive_device(struct udev_monitor *udev_monito
         return NULL;
     }
 
-    snprintf(file, sizeof(file), UDEV_MONITOR_DIR "/%s", data);
+    snprintf(file, sizeof(file), "%s/%s", UDEV_MONITOR_DIR, data);
     udev_device = udev_device_new_from_file(udev_monitor->udev, file);
 
     if (!udev_device) {
