@@ -13,11 +13,14 @@ rewrite[1] this crappy library because libinput has mandatory udev dependency.
 Without libinput you can't use wayland and some other cool stuff.
 
 Michael Forney (cproc, samurai, Oasis Linux, ... author) decided to fork[2]
-libinput and remove udev mandatority. This is solution ? Yes. This is long term
-solution ? No. Patching upstream changes eventually will become absolutely
-nightmare. Also this fork has a lot of disadvantages like requiring static
-configuration which means you can't rely on automatic input devices
-discovering.
+libinput and remove udev mandatority. This is solution ? Yes. This is complete
+solution ? No. This fork has a lot of disadvantages like requiring patching
+application from libinput_udev to libinput_netlink API in order to use
+automatic detection of input devices and hotplugging. Static confuguration also
+required for anything other than input devices (e.g drm devices). Moreover
+hotplugging vulnerable to race conditions when libinput handles uevent faster
+than device manager which can lead to file permissions issues. libudev-zero
+prevents these race conditions by design.
 
 Thanks god udev has stable API and hopefully no changes will be made in
 future. On this basis i decided to create this clean-room implementation of
