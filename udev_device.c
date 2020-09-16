@@ -145,7 +145,7 @@ struct udev_device *udev_device_get_parent_with_subsystem_devtype(struct udev_de
     return NULL;
 }
 
-int udev_device_get_is_initialized(struct udev_device *udev_device)
+/* XXX NOT IMPLEMENTED */ int udev_device_get_is_initialized(struct udev_device *udev_device)
 {
     return 1;
 }
@@ -155,15 +155,13 @@ const char *udev_device_get_action(struct udev_device *udev_device)
     return udev_device_get_property_value(udev_device, "ACTION");
 }
 
-int udev_device_has_tag(struct udev_device *udev_device, const char *tag)
+/* XXX NOT IMPLEMENTED */ int udev_device_has_tag(struct udev_device *udev_device, const char *tag)
 {
-    // XXX NOT IMPLEMENTED
     return 0;
 }
 
-struct udev_list_entry *udev_device_get_devlinks_list_entry(struct udev_device *udev_device)
+/* XXX NOT IMPLEMENTED */ struct udev_list_entry *udev_device_get_devlinks_list_entry(struct udev_device *udev_device)
 {
-    // XXX NOT IMPLEMENTED
     return NULL;
 }
 
@@ -172,9 +170,8 @@ struct udev_list_entry *udev_device_get_properties_list_entry(struct udev_device
     return udev_device ? udev_list_entry_get_next(&udev_device->properties) : NULL;
 }
 
-struct udev_list_entry *udev_device_get_tags_list_entry(struct udev_device *udev_device)
+/* XXX NOT IMPLEMENTED */ struct udev_list_entry *udev_device_get_tags_list_entry(struct udev_device *udev_device)
 {
-    // XXX NOT IMPLEMENTED
     return NULL;
 }
 
@@ -657,15 +654,13 @@ struct udev_device *udev_device_new_from_file(struct udev *udev, const char *pat
     return udev_device;
 }
 
-struct udev_device *udev_device_new_from_device_id(struct udev *udev, const char *id)
+/* XXX NOT IMPLEMENTED */ struct udev_device *udev_device_new_from_device_id(struct udev *udev, const char *id)
 {
-    // XXX NOT IMPLEMENTED
     return NULL;
 }
 
-struct udev_device *udev_device_new_from_environment(struct udev *udev)
+/* XXX NOT IMPLEMENTED */ struct udev_device *udev_device_new_from_environment(struct udev *udev)
 {
-    // XXX NOT IMPLEMENTED
     return NULL;
 }
 

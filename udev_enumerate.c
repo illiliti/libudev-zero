@@ -83,19 +83,17 @@ int udev_enumerate_add_match_sysname(struct udev_enumerate *udev_enumerate, cons
     return udev_list_entry_add(&udev_enumerate->sysname_match, sysname, NULL, 0) ? 0 : -1;
 }
 
-int udev_enumerate_add_match_tag(struct udev_enumerate *udev_enumerate, const char *tag)
+/* XXX NOT IMPLEMENTED */ int udev_enumerate_add_match_tag(struct udev_enumerate *udev_enumerate, const char *tag)
 {
-    // XXX NOT IMPLEMENTED
     return 0;
 }
 
-int udev_enumerate_add_match_parent(struct udev_enumerate *udev_enumerate, struct udev_device *parent)
+/* XXX NOT IMPLEMENTED */ int udev_enumerate_add_match_parent(struct udev_enumerate *udev_enumerate, struct udev_device *parent)
 {
-    // XXX NOT IMPLEMENTED
     return 0;
 }
 
-int udev_enumerate_add_match_is_initialized(struct udev_enumerate *udev_enumerate)
+/* XXX NOT IMPLEMENTED */ int udev_enumerate_add_match_is_initialized(struct udev_enumerate *udev_enumerate)
 {
     return 0;
 }
@@ -342,9 +340,8 @@ int udev_enumerate_scan_devices(struct udev_enumerate *udev_enumerate)
     return 0;
 }
 
-int udev_enumerate_scan_subsystems(struct udev_enumerate *udev_enumerate)
+/* XXX NOT IMPLEMENTED */ int udev_enumerate_scan_subsystems(struct udev_enumerate *udev_enumerate)
 {
-    // XXX NOT IMPLEMENTED
     return 0;
 }
 
@@ -353,9 +350,8 @@ struct udev_list_entry *udev_enumerate_get_list_entry(struct udev_enumerate *ude
     return udev_enumerate ? udev_list_entry_get_next(&udev_enumerate->devices) : NULL;
 }
 
-int udev_enumerate_add_syspath(struct udev_enumerate *udev_enumerate, const char *syspath)
+/* XXX NOT IMPLEMENTED */ int udev_enumerate_add_syspath(struct udev_enumerate *udev_enumerate, const char *syspath)
 {
-    // XXX NOT IMPLEMENTED
     return 0;
 }
 
