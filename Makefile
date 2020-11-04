@@ -29,8 +29,18 @@ libudev.so: ${OBJ}
 	${CC} ${XCFLAGS} -o $@ ${OBJ} ${XLDFLAGS}
 
 libudev.pc: libudev.pc.in
-	sed -e 's|@libdir@|${LIBDIR}|g' \
-		-e 's|@includedir@|${INCLUDEDIR}|g' \
+	libdir="${LIBDIR}"; \
+	if [ "$${libdir#${PREFIX}}" != "$$libdir" ]; then \
+		libdir="\$${exec_prefix}$${libdir#${PREFIX}}"; \
+	fi; \
+	includedir="${INCLUDEDIR}"; \
+	if [ "$${includedir#${PREFIX}}" != "$$includedir" ]; then \
+		includedir="\$${prefix}$${includedir#${PREFIX}}"; \
+	fi; \
+	sed -e 's|@prefix@|${PREFIX}|g' \
+		-e 's|@exec_prefix@|${PREFIX}|g' \
+		-e "s|@libdir@|$$libdir|g" \
+		-e "s|@includedir@|$$includedir|g" \
 		-e 's|@VERSION@|243|g' \
 		libudev.pc.in > libudev.pc
 
