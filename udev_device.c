@@ -334,6 +334,7 @@ static int populate_bit(unsigned long *arr, const char *val)
         return 0;
     }
 
+    // TODO remove. strtoul is able to handle this
     bit = strtok_r(bits, " ", &save);
 
     for (i = 0; bit && i < BITS_MAX; i++) {
