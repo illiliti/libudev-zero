@@ -44,6 +44,19 @@ const char *udev_device_get_devnode(struct udev_device *udev_device)
     return udev_device_get_property_value(udev_device, "DEVNAME");
 }
 
+unsigned long long udev_device_get_seqnum(struct udev_device *udev_device)
+{
+    const char *seqnum;
+
+    seqnum = udev_device_get_property_value(udev_device, "SEQNUM");
+
+    if (!seqnum) {
+        return 0;
+    }
+
+    return strtoull(seqnum, NULL, 10);
+}
+
 dev_t udev_device_get_devnum(struct udev_device *udev_device)
 {
     const char *major, *minor;

@@ -28,6 +28,7 @@ const char *udev_device_get_sysnum(struct udev_device *udev_device);
 const char *udev_device_get_devpath(struct udev_device *udev_device);
 const char *udev_device_get_devnode(struct udev_device *udev_device);
 dev_t udev_device_get_devnum(struct udev_device *udev_device);
+unsigned long long udev_device_get_seqnum(struct udev_device *udev_device);
 const char *udev_device_get_devtype(struct udev_device *udev_device);
 const char *udev_device_get_subsystem(struct udev_device *udev_device);
 const char *udev_device_get_driver(struct udev_device *udev_device);
