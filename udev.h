@@ -1,6 +1,9 @@
 #include <sys/types.h>
 #include <sys/sysmacros.h>
 
+#ifndef _LIBUDEV_H_
+#define _LIBUDEV_H_
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -101,4 +104,6 @@ struct udev_device *udev_device_new_from_file(struct udev *udev, const char *pat
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif
