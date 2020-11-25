@@ -5,6 +5,7 @@
 #include <limits.h>
 #include <sys/stat.h>
 #include <linux/input.h>
+#include <linux/input-event-codes.h>
 
 #include "udev.h"
 #include "udev_list.h"
