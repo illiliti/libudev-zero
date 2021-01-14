@@ -19,6 +19,11 @@ struct udev_device {
     int refcount;
 };
 
+unsigned long long udev_device_get_usec_since_initialized(struct udev_device *udev_device)
+{
+    return 0ull;
+}
+
 const char *udev_device_get_syspath(struct udev_device *udev_device)
 {
     return udev_device_get_property_value(udev_device, "SYSPATH");

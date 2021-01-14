@@ -22,6 +22,7 @@ struct udev *udev_new(void);
 struct udev *udev_ref(struct udev *udev);
 struct udev *udev_unref(struct udev *udev);
 
+unsigned long long udev_device_get_usec_since_initialized(struct udev_device *udev_device);
 const char *udev_device_get_syspath(struct udev_device *udev_device);
 const char *udev_device_get_sysname(struct udev_device *udev_device);
 const char *udev_device_get_sysnum(struct udev_device *udev_device);
