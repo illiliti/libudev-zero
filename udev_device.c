@@ -57,6 +57,11 @@ unsigned long long udev_device_get_seqnum(struct udev_device *udev_device)
     return strtoull(seqnum, NULL, 10);
 }
 
+unsigned long long udev_device_get_usec_since_initialized(struct udev_device *udev_device)
+{
+    return 0;
+}
+
 dev_t udev_device_get_devnum(struct udev_device *udev_device)
 {
     const char *major, *minor;
