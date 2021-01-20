@@ -11,6 +11,14 @@
 
 #define BITS_MAX 96
 
+#ifndef INPUT_PROP_POINTING_STICK
+#define INPUT_PROP_POINTING_STICK 0x05
+#endif
+
+#ifndef INPUT_PROP_ACCELEROMETER
+#define INPUT_PROP_ACCELEROMETER 0x06
+#endif
+
 struct udev_device {
     struct udev_list_entry properties;
     struct udev_list_entry sysattrs;
