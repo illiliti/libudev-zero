@@ -9,7 +9,7 @@
 #include "udev.h"
 #include "udev_list.h"
 
-enum { BITS_MAX = 96 };
+#define BITS_MAX 96
 
 struct udev_device {
     struct udev_list_entry properties;
@@ -136,23 +136,17 @@ struct udev_device *udev_device_get_parent_with_subsystem_devtype(struct udev_de
         return NULL;
     }
 
-    parent = udev_device_get_parent(udev_device);
-
-    while (parent) {
+    for (parent = udev_device_get_parent(udev_device); parent; parent = udev_device_get_parent(parent)) {
         parent_subsystem = udev_device_get_subsystem(parent);
         parent_devtype = udev_device_get_devtype(parent);
 
-        if (parent_subsystem && strcmp(parent_subsystem, subsystem) == 0) {
-            if (!devtype) {
-                return parent;
-            }
-
-            if (parent_devtype && strcmp(parent_devtype, devtype) == 0) {
-                return parent;
-            }
+        if (!parent_subsystem || strcmp(parent_subsystem, subsystem) != 0) {
+            continue;
         }
 
-        parent = udev_device_get_parent(parent);
+        if (!devtype || (parent_devtype && strcmp(parent_devtype, devtype) == 0)) {
+            return parent;
+        }
     }
 
     return NULL;
@@ -205,7 +199,7 @@ const char *udev_device_get_property_value(struct udev_device *udev_device, cons
 const char *udev_device_get_sysattr_value(struct udev_device *udev_device, const char *sysattr)
 {
     struct udev_list_entry *list_entry;
-    char data[BUFSIZ], path[PATH_MAX];
+    char data[1024], path[PATH_MAX];
     struct stat st;
     size_t len;
     FILE *file;
@@ -241,13 +235,11 @@ const char *udev_device_get_sysattr_value(struct udev_device *udev_device, const
     }
 
     if ((pos = memchr(data, '\n', len))) {
-        *pos = '\0';
-    }
-    else {
-        data[len] = '\0';
+        len = pos - data;
     }
 
     fclose(file);
+    data[len] = '\0';
     list_entry = udev_list_entry_add(&udev_device->sysattrs, sysattr, data, 0);
     return udev_list_entry_get_value(list_entry);
 }
@@ -305,9 +297,9 @@ static char *udev_device_read_symlink(struct udev_device *udev_device, const cha
 
 static void udev_device_set_properties_from_uevent(struct udev_device *udev_device)
 {
-    char line[LINE_MAX], path[PATH_MAX];
-    char *pos, devnode[PATH_MAX];
+    char line[LINE_MAX], path[PATH_MAX], devnode[PATH_MAX];
     FILE *file;
+    char *pos;
 
     snprintf(path, sizeof(path), "%s/uevent", udev_device_get_syspath(udev_device));
     file = fopen(path, "r");
@@ -317,7 +309,7 @@ static void udev_device_set_properties_from_uevent(struct udev_device *udev_devi
     }
 
     while (fgets(line, sizeof(line), file)) {
-        line[strcspn(line, "\n")] = '\0';
+        line[strlen(line) - 1] = '\0';
 
         if (strncmp(line, "DEVNAME", 7) == 0) {
             snprintf(devnode, sizeof(devnode), "/dev/%s", line + 8);
@@ -332,40 +324,33 @@ static void udev_device_set_properties_from_uevent(struct udev_device *udev_devi
     fclose(file);
 }
 
-static int populate_bit(unsigned long *arr, const char *val)
+static int populate_bit(unsigned long *arr, const char *str)
 {
-    char *bit, *bits, *save;
+    char *beg, *end;
     int i;
 
-    if (!val) {
+    if (!str) {
         return 0;
     }
 
-    bits = strdup(val);
+    // TODO drop strdup ?
+    beg = end = strdup(str);
 
-    if (!bits) {
+    if (!beg) {
         return 0;
     }
 
-    // TODO remove. strtoul is able to handle this
-    bit = strtok_r(bits, " ", &save);
-
-    for (i = 0; bit && i < BITS_MAX; i++) {
-        arr[i] = strtoul(bit, NULL, 16);
-        bit = strtok_r(NULL, " ", &save);
+    for (i = 0; end[0] != '\0' && i < BITS_MAX; i++) {
+        arr[i] = strtoul(end, &end, 16);
     }
 
-    free(bits);
+    free(beg);
     return i;
 }
 
-static int find_bit(unsigned long *arr, int cnt, int bit)
+static int find_bit(unsigned long *arr, int cnt, unsigned long bit)
 {
     int i;
-
-    if (!cnt) {
-        return 0;
-    }
 
     for (i = 0; i < cnt; i++) {
         if (arr[i] & (1UL << (bit % LONG_BIT))) {
@@ -561,10 +546,10 @@ struct udev_device *udev_device_new_from_devnum(struct udev *udev, char type, de
 
     switch (type) {
     case 'c':
-        snprintf(path, sizeof(path), "/sys/dev/char/%d:%d", major(devnum), minor(devnum));
+        snprintf(path, sizeof(path), "/sys/dev/char/%u:%u", major(devnum), minor(devnum));
         break;
     case 'b':
-        snprintf(path, sizeof(path), "/sys/dev/block/%d:%d", major(devnum), minor(devnum));
+        snprintf(path, sizeof(path), "/sys/dev/block/%u:%u", major(devnum), minor(devnum));
         break;
     default:
         return NULL;
@@ -598,26 +583,26 @@ struct udev_device *udev_device_new_from_file(struct udev *udev, const char *pat
 {
     char line[LINE_MAX], syspath[PATH_MAX], devnode[PATH_MAX];
     struct udev_device *udev_device;
-    char *pos, *sysname;
+    char *sysname = NULL;
     struct stat st;
     FILE *file;
+    char *pos;
     int i;
 
-    udev_device = calloc(1, sizeof(struct udev_device));
-
-    if (!udev_device) {
-        return NULL;
-    }
-
     if (stat(path, &st) != 0 || st.st_size > 8192) {
-        free(udev_device);
         return NULL;
     }
 
     file = fopen(path, "r");
 
     if (!file) {
-        free(udev_device);
+        return NULL;
+    }
+
+    udev_device = calloc(1, sizeof(struct udev_device));
+
+    if (!udev_device) {
+        fclose(file);
         return NULL;
     }
 
@@ -629,7 +614,7 @@ struct udev_device *udev_device_new_from_file(struct udev *udev, const char *pat
     udev_list_entry_init(&udev_device->sysattrs);
 
     while (fgets(line, sizeof(line), file)) {
-        line[strcspn(line, "\n")] = '\0';
+        line[strlen(line) - 1] = '\0';
 
         if (strncmp(line, "DEVPATH", 7) == 0) {
             snprintf(syspath, sizeof(syspath), "/sys%s", line + 8);
@@ -658,7 +643,7 @@ struct udev_device *udev_device_new_from_file(struct udev *udev, const char *pat
 
     fclose(file);
 
-    if (!udev_device_get_syspath(udev_device)) {
+    if (!sysname) {
         udev_device_unref(udev_device);
         return NULL;
     }

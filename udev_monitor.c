@@ -13,11 +13,11 @@
 #include "udev.h"
 #include "udev_list.h"
 
+#define THREADS_MAX 5
+
 #ifndef UDEV_MONITOR_DIR
 #define UDEV_MONITOR_DIR "/tmp/.libudev-zero"
 #endif
-
-enum { THREADS_MAX = 5 };
 
 struct udev_monitor {
     struct udev_list_entry subsystem_match;
@@ -132,7 +132,7 @@ static void *udev_monitor_handle_event(void *ptr)
         for (i = 0; i < len; i += sizeof(struct inotify_event) + event->len) {
             event = (struct inotify_event *)&data[i];
 
-            // TODO user deleted directory, what should we do ?
+            // TODO directory is removed
             if (event->mask & IN_IGNORED) {
                 break;
             }

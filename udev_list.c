@@ -20,48 +20,61 @@ void udev_list_entry_free(struct udev_list_entry *list_entry)
 
 void udev_list_entry_free_all(struct udev_list_entry *list_entry)
 {
-    struct udev_list_entry *tmp, *tmp2;
+    struct udev_list_entry *list_entry2 = list_entry->next;
 
-    tmp = list_entry->next;
-
-    while (tmp) {
-        tmp2 = tmp;
-        tmp = tmp->next;
-        udev_list_entry_free(tmp2);
+    while (list_entry2) {
+        list_entry = list_entry2;
+        list_entry2 = list_entry->next;
+        udev_list_entry_free(list_entry);
     }
 }
 
 struct udev_list_entry *udev_list_entry_add(struct udev_list_entry *list_entry, const char *name, const char *value, int uniq)
 {
-    struct udev_list_entry *new, *old;
+    struct udev_list_entry *list_entry2;
 
     if (uniq) {
-        old = udev_list_entry_get_by_name(list_entry, name);
+        list_entry2 = udev_list_entry_get_by_name(list_entry, name);
 
-        if (old) {
-            if (old->value && strcmp(old->value, value) == 0) {
-                return old;
+        if (list_entry2 && value) {
+            if (list_entry2->value && strcmp(list_entry2->value, value) == 0) {
+                return list_entry2;
             }
 
-            free(old->value);
-            old->value = value ? strdup(value) : NULL;
-            return old;
+            free(list_entry2->value);
+            list_entry2->value = strdup(value);
+
+            if (!list_entry2->value) {
+                return NULL;
+            }
+
+            return list_entry2;
         }
     }
 
-    new = calloc(1, sizeof(struct udev_list_entry));
+    list_entry2 = calloc(1, sizeof(struct udev_list_entry));
 
-    if (!new) {
+    if (!list_entry2) {
         return NULL;
     }
 
-    new->value = value ? strdup(value) : NULL;
-    new->name = strdup(name);
+    list_entry2->name = strdup(name);
 
-    new->next = list_entry->next;
-    list_entry->next = new;
+    if (!list_entry2->name) {
+        return NULL;
+    }
 
-    return new;
+    if (value) {
+        list_entry2->value = strdup(value);
+
+        if (!list_entry2->value) {
+            return NULL;
+        }
+    }
+
+    list_entry2->next = list_entry->next;
+    list_entry->next = list_entry2;
+    return list_entry2;
 }
 
 struct udev_list_entry *udev_list_entry_get_next(struct udev_list_entry *list_entry)
@@ -71,21 +84,16 @@ struct udev_list_entry *udev_list_entry_get_next(struct udev_list_entry *list_en
 
 struct udev_list_entry *udev_list_entry_get_by_name(struct udev_list_entry *list_entry, const char *name)
 {
-    struct udev_list_entry *tmp;
-
     if (!list_entry || !name) {
         return NULL;
     }
 
-    tmp = list_entry;
-
-    while (tmp) {
-        if (tmp->name && strcmp(tmp->name, name) == 0) {
-            return tmp;
+    do {
+        if (list_entry->name && strcmp(list_entry->name, name) == 0) {
+            return list_entry;
         }
-
-        tmp = tmp->next;
     }
+    while ((list_entry = list_entry->next));
 
     return NULL;
 }
