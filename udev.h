@@ -1,6 +1,6 @@
+#include <stdarg.h>
 #include <sys/types.h>
 #include <sys/sysmacros.h>
-#include <stdarg.h>
 
 #ifndef _LIBUDEV_H_
 #define _LIBUDEV_H_
@@ -23,12 +23,11 @@ struct udev *udev_new(void);
 struct udev *udev_ref(struct udev *udev);
 struct udev *udev_unref(struct udev *udev);
 
-void udev_set_log_fn(struct udev *udev,
-                            void (*log_fn)(struct udev *udev,
-                                           int priority, const char *file, int line, const char *fn,
-                                           const char *format, va_list args));
-int udev_get_log_priority(struct udev *udev);
+void udev_set_log_fn(struct udev *udev, void (*log_fn)(struct udev *udev,
+            int priority, const char *file, int line, const char *fn,
+            const char *format, va_list args));
 void udev_set_log_priority(struct udev *udev, int priority);
+int udev_get_log_priority(struct udev *udev);
 
 const char *udev_device_get_syspath(struct udev_device *udev_device);
 const char *udev_device_get_sysname(struct udev_device *udev_device);
