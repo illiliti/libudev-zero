@@ -434,7 +434,12 @@ static void udev_device_set_properties_from_evdev(struct udev_device *udev_devic
     else if (find_bit(ev_bits, ev_cnt, EV_ABS)) {
         if (find_bit(key_bits, key_cnt, BTN_SELECT) || find_bit(key_bits, key_cnt, BTN_TR) ||
             find_bit(key_bits, key_cnt, BTN_START) || find_bit(key_bits, key_cnt, BTN_TL)) {
-            udev_list_entry_add(&udev_device->properties, "ID_INPUT_JOYSTICK", "1", 0);
+            if (find_bit(key_bits, key_cnt, BTN_TOUCH)) {
+                udev_list_entry_add(&udev_device->properties, "ID_INPUT_TOUCHSCREEN", "1", 0);
+            }
+            else {
+                udev_list_entry_add(&udev_device->properties, "ID_INPUT_JOYSTICK", "1", 0);
+            }
         }
         else if (find_bit(abs_bits, abs_cnt, ABS_Y) && find_bit(abs_bits, abs_cnt, ABS_X)) {
             if (find_bit(abs_bits, abs_cnt, ABS_Z) && !find_bit(ev_bits, ev_cnt, EV_KEY)) {
