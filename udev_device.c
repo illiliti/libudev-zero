@@ -461,7 +461,8 @@ static void udev_device_set_properties_from_evdev(struct udev_device *udev_devic
             }
         }
     }
-    else if (find_bit(ev_bits, ev_cnt, EV_KEY)) {
+
+    if (find_bit(ev_bits, ev_cnt, EV_KEY)) {
         udev_list_entry_add(&udev_device->properties, "ID_INPUT_KEY", "1", 0);
 
         if (find_bit(key_bits, key_cnt, KEY_ENTER)) {
