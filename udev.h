@@ -1,5 +1,8 @@
 #include <stdarg.h>
 #include <sys/types.h>
+
+// we must keep this include here to fix some legacy programs
+// https://freenode.logbot.info/kisslinux/20200722#c4467755
 #include <sys/sysmacros.h>
 
 #ifndef _LIBUDEV_H_
