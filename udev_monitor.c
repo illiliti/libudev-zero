@@ -1,13 +1,13 @@
+#include <poll.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <signal.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <limits.h>
 #include <pthread.h>
 #include <sys/stat.h>
-#include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/inotify.h>
 
@@ -30,7 +30,6 @@ struct udev_monitor {
     int sfd[2];
     int pfd[2];
     int ifd;
-    int efd;
 };
 
 static int filter_devtype(struct udev_monitor *udev_monitor, struct udev_device *udev_device)
@@ -116,25 +115,29 @@ static void *handle_event(void *ptr)
 {
     struct udev_monitor *udev_monitor = ptr;
     struct inotify_event *event;
-    struct epoll_event epoll[2];
+    struct pollfd poll_fds[2];
     char data[4096];
-    sigset_t set;
     ssize_t len;
     int i;
 
-    sigfillset(&set);
-    pthread_sigmask(SIG_BLOCK, &set, NULL);
+    poll_fds[0].fd = udev_monitor->ifd;
+    poll_fds[0].events = POLLIN;
 
-    while (epoll_wait(udev_monitor->efd, epoll, 2, -1) != -1) {
-        for (i = 0; i < 2; i++) {
-            if (epoll[i].data.fd != udev_monitor->pfd[0]) {
+    poll_fds[1].fd = udev_monitor->pfd[0];
+    poll_fds[1].events = POLLIN;
+
+    while (1) {
+        if (poll(poll_fds, 2, -1) == -1) {
+            if (errno == EINTR) {
                 continue;
             }
+            break;
+        }
 
+        if (poll_fds[1].revents & POLLIN) {
             read(udev_monitor->pfd[0], data, 1);
             write(udev_monitor->pfd[1], "1", 1);
-            pthread_barrier_wait(&udev_monitor->barrier);
-            return NULL;
+            break;
         }
 
         len = read(udev_monitor->ifd, data, sizeof(data));
@@ -228,7 +231,6 @@ int udev_monitor_filter_add_match_subsystem_devtype(struct udev_monitor *udev_mo
 struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char *name)
 {
     struct udev_monitor *udev_monitor;
-    struct epoll_event epoll[2];
     struct stat st;
     int i;
 
@@ -255,16 +257,10 @@ struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char
         return NULL;
     }
 
-    udev_monitor->efd = epoll_create1(EPOLL_CLOEXEC);
-
-    if (udev_monitor->efd == -1) {
-        goto error_free;
-    }
-
     udev_monitor->ifd = inotify_init1(IN_CLOEXEC | IN_NONBLOCK);
 
     if (udev_monitor->ifd == -1) {
-        goto error_efd;
+        goto error_free;
     }
 
     if (inotify_add_watch(udev_monitor->ifd, UDEV_MONITOR_DIR, IN_CLOSE_WRITE | IN_EXCL_UNLINK) == -1) {
@@ -278,18 +274,6 @@ struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char
     for (i = 0; i < 2; i++) {
         fcntl(udev_monitor->pfd[i], F_SETFD, FD_CLOEXEC);
         fcntl(udev_monitor->pfd[i], F_SETFL, O_NONBLOCK);
-    }
-
-    epoll[0].events = EPOLLIN | EPOLLET;
-    epoll[1].events = EPOLLIN | EPOLLET;
-    epoll[1].data.fd = udev_monitor->pfd[0];
-
-    if (epoll_ctl(udev_monitor->efd, EPOLL_CTL_ADD, udev_monitor->ifd, &epoll[0]) == -1) {
-        goto error_pfd;
-    }
-
-    if (epoll_ctl(udev_monitor->efd, EPOLL_CTL_ADD, udev_monitor->pfd[0], &epoll[1]) == -1) {
-        goto error_pfd;
     }
 
     if (socketpair(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC | SOCK_NONBLOCK, 0, udev_monitor->sfd) == -1) {
@@ -307,9 +291,6 @@ error_pfd:
 
 error_ifd:
     close(udev_monitor->ifd);
-
-error_efd:
-    close(udev_monitor->efd);
 
 error_free:
     free(udev_monitor);
@@ -351,7 +332,6 @@ struct udev_monitor *udev_monitor_unref(struct udev_monitor *udev_monitor)
     }
 
     close(udev_monitor->ifd);
-    close(udev_monitor->efd);
     free(udev_monitor);
     return NULL;
 }
