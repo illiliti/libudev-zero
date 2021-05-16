@@ -120,7 +120,10 @@ static void *udev_monitor_handle_event(void *ptr)
     ssize_t len;
     int i;
 
-    while (epoll_wait(udev_monitor->efd, epoll, 2, -1) != -1) {
+    while (1) {
+        if(epoll_wait(udev_monitor->efd, epoll, 2, -1) == -1) {
+            continue;
+        }
         for (i = 0; i < 2; i++) {
             if (epoll[i].data.fd != udev_monitor->pfd[0]) {
                 continue;
