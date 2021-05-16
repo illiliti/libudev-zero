@@ -28,7 +28,7 @@ Thankfully `udev` has stable API and hopefully no changes will be made to it the
 * C99 compiler (build time)
 * POSIX make (build time)
 * POSIX & XSI libc
-* epoll & inotify
+* inotify
 * Linux >= 2.6.39
 
 ## Installation
