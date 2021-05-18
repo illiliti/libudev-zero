@@ -33,7 +33,7 @@ int main(int argc, char **argv)
         break;
     default:
         fprintf(stderr, "usage: %s [dir]\n", argv[0]);
-        return 1;
+        return 2;
     }
 
     snprintf(path, sizeof(path), "%s/uevent.XXXXXX", dir);
@@ -45,8 +45,8 @@ int main(int argc, char **argv)
     }
 
     for (i = 0; environ[i]; i++) {
-        if (strncmp(environ[i], "PATH", 4) == 0 ||
-            strncmp(environ[i], "HOME", 4) == 0) {
+        if (strncmp(environ[i], "PATH=", 5) == 0 ||
+            strncmp(environ[i], "HOME=", 5) == 0) {
             continue;
         }
 
