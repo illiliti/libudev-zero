@@ -15,6 +15,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <sys/stat.h>
 
 int main(int argc, char **argv)
 {
@@ -58,6 +59,7 @@ int main(int argc, char **argv)
         }
     }
 
+    fchmod(fd, 0444);
     close(fd);
     return 0;
 }
