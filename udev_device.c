@@ -212,11 +212,10 @@ const char *udev_device_get_property_value(struct udev_device *udev_device, cons
 const char *udev_device_get_sysattr_value(struct udev_device *udev_device, const char *sysattr)
 {
     struct udev_list_entry *list_entry;
-    char data[1024], path[PATH_MAX];
+    char data[PAGESIZE], path[PATH_MAX];
     struct stat st;
     size_t len;
     FILE *file;
-    char *pos;
 
     if (!udev_device || !sysattr) {
         return NULL;
@@ -240,19 +239,21 @@ const char *udev_device_get_sysattr_value(struct udev_device *udev_device, const
         return NULL;
     }
 
-    len = fread(data, 1, sizeof(data), file);
+    // TODO dynamic allocation of data
+    len = fread(data, 1, sizeof(data)-1, file);
 
-    if (len != sizeof(data) && ferror(file)) {
+    if (len != sizeof(data)-1 && ferror(file)) {
         fclose(file);
         return NULL;
     }
 
-    if ((pos = memchr(data, '\n', len))) {
-        len = pos - data;
-    }
-
     fclose(file);
     data[len] = '\0';
+
+    while (len-- > 0 && data[len] == '\n') {
+        data[len] = '\0';
+    }
+
     list_entry = udev_list_entry_add(&udev_device->sysattrs, sysattr, data, 0);
     return udev_list_entry_get_value(list_entry);
 }
