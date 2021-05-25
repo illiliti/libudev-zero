@@ -1,5 +1,6 @@
 #include <fcntl.h>
 #include <stdio.h>
+#include <signal.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -117,8 +118,12 @@ static void *udev_monitor_handle_event(void *ptr)
     struct inotify_event *event;
     struct epoll_event epoll[2];
     char data[4096];
+    sigset_t set;
     ssize_t len;
     int i;
+
+    sigfillset(&set);
+    pthread_sigmask(SIG_BLOCK, &set, NULL);
 
     while (epoll_wait(udev_monitor->efd, epoll, 2, -1) != -1) {
         for (i = 0; i < 2; i++) {
