@@ -9,7 +9,17 @@
 #include "udev.h"
 #include "udev_list.h"
 
-#define BITS_MAX 96
+// sizeof(unsigned long) == 4 * 8 == 32 on 32-bit systems.
+// sizeof(unsigned long) == 8 * 8 == 64 on 64-bit systems.
+#ifndef LONG_BIT
+#define LONG_BIT (sizeof(unsigned long) * 8)
+#endif
+
+// https://www.kernel.org/doc/html/latest/input/ff.html#querying-device-capabilities
+// https://www.kernel.org/doc/html/latest/input/input-programming.html#bits-to-longs-bit-word-bit-mask
+#define BIT_WORD(x) ((x) / LONG_BIT)
+#define BIT_MASK(x) (1UL << ((x) % LONG_BIT))
+#define BITS_TO_LONGS(x) (((x) + LONG_BIT - 1) / LONG_BIT)
 
 #ifndef INPUT_PROP_POINTING_STICK
 #define INPUT_PROP_POINTING_STICK 0x05
@@ -338,51 +348,37 @@ static void udev_device_set_properties_from_uevent(struct udev_device *udev_devi
     fclose(file);
 }
 
-static int populate_bit(unsigned long *arr, const char *str)
+static void make_bit(unsigned long *arr, int cnt, const char *str)
 {
-    char *beg, *end;
+    size_t len;
     int i;
 
     if (!str) {
-        return 0;
+        return;
     }
 
-    // TODO drop strdup ?
-    beg = end = strdup(str);
-
-    if (!beg) {
-        return 0;
-    }
-
-    for (i = 0; end[0] != '\0' && i < BITS_MAX; i++) {
-        arr[i] = strtoul(end, &end, 16);
-    }
-
-    free(beg);
-    return i;
-}
-
-static int find_bit(unsigned long *arr, int cnt, unsigned long bit)
-{
-    int i;
-
-    for (i = 0; i < cnt; i++) {
-        if (arr[i] & (1UL << (bit % LONG_BIT))) {
-            return 1;
+    for (i = 0, len = strlen(str); i < cnt && len > 0; len--) {
+        if (str[len] == ' ') {
+            arr[i++] = strtoul(str + len + 1, NULL, 16);
         }
     }
 
-    return 0;
+    arr[i] = strtoul(str, NULL, 16);
+}
+
+static int test_bit(unsigned long *arr, unsigned long bit)
+{
+    return arr[BIT_WORD(bit)] & BIT_MASK(bit);
 }
 
 static void udev_device_set_properties_from_evdev(struct udev_device *udev_device)
 {
-    int ev_cnt, rel_cnt, key_cnt, abs_cnt, prop_cnt;
-    unsigned long prop_bits[BITS_MAX] = {0};
-    unsigned long abs_bits[BITS_MAX] = {0};
-    unsigned long rel_bits[BITS_MAX] = {0};
-    unsigned long key_bits[BITS_MAX] = {0};
-    unsigned long ev_bits[BITS_MAX] = {0};
+    // https://www.kernel.org/doc/html/latest/driver-api/input.html#c.input_dev
+    unsigned long prop_bits[BITS_TO_LONGS(INPUT_PROP_CNT)] = {0};
+    unsigned long abs_bits[BITS_TO_LONGS(ABS_CNT)] = {0};
+    unsigned long rel_bits[BITS_TO_LONGS(REL_CNT)] = {0};
+    unsigned long key_bits[BITS_TO_LONGS(KEY_CNT)] = {0};
+    unsigned long ev_bits[BITS_TO_LONGS(EV_CNT)] = {0};
     struct udev_device *parent;
     const char *subsystem;
 
@@ -406,67 +402,67 @@ static void udev_device_set_properties_from_evdev(struct udev_device *udev_devic
         parent = udev_device_get_parent_with_subsystem_devtype(parent, "input", NULL);
     }
 
-    ev_cnt = populate_bit(ev_bits, udev_device_get_property_value(parent, "EV"));
-    abs_cnt = populate_bit(abs_bits, udev_device_get_property_value(parent, "ABS"));
-    rel_cnt = populate_bit(rel_bits, udev_device_get_property_value(parent, "REL"));
-    key_cnt = populate_bit(key_bits, udev_device_get_property_value(parent, "KEY"));
-    prop_cnt = populate_bit(prop_bits, udev_device_get_property_value(parent, "PROP"));
+    make_bit(ev_bits, sizeof(ev_bits) / sizeof(ev_bits[0]), udev_device_get_property_value(parent, "EV"));
+    make_bit(abs_bits, sizeof(abs_bits) / sizeof(abs_bits[0]), udev_device_get_property_value(parent, "ABS"));
+    make_bit(rel_bits, sizeof(rel_bits) / sizeof(rel_bits[0]), udev_device_get_property_value(parent, "REL"));
+    make_bit(key_bits, sizeof(key_bits) / sizeof(key_bits[0]), udev_device_get_property_value(parent, "KEY"));
+    make_bit(prop_bits, sizeof(prop_bits) / sizeof(prop_bits[0]), udev_device_get_property_value(parent, "PROP"));
 
     udev_list_entry_add(&udev_device->properties, "ID_INPUT", "1", 0);
 
-    if (find_bit(prop_bits, prop_cnt, INPUT_PROP_POINTING_STICK)) {
+    if (test_bit(prop_bits, INPUT_PROP_POINTING_STICK)) {
         udev_list_entry_add(&udev_device->properties, "ID_INPUT_POINTINGSTICK", "1", 0);
     }
 
-    if (find_bit(prop_bits, prop_cnt, INPUT_PROP_ACCELEROMETER)) {
+    if (test_bit(prop_bits, INPUT_PROP_ACCELEROMETER)) {
         udev_list_entry_add(&udev_device->properties, "ID_INPUT_ACCELEROMETER", "1", 0);
     }
 
-    if (find_bit(ev_bits, ev_cnt, EV_SW)) {
+    if (test_bit(ev_bits, EV_SW)) {
         udev_list_entry_add(&udev_device->properties, "ID_INPUT_SWITCH", "1", 0);
     }
 
-    if (find_bit(ev_bits, ev_cnt, EV_REL)) {
-        if (find_bit(rel_bits, rel_cnt, REL_Y) && find_bit(rel_bits, rel_cnt, REL_X) &&
-            find_bit(key_bits, key_cnt, BTN_MOUSE)) {
+    if (test_bit(ev_bits, EV_REL)) {
+        if (test_bit(rel_bits, REL_Y) && test_bit(rel_bits, REL_X) &&
+            test_bit(key_bits, BTN_MOUSE)) {
             udev_list_entry_add(&udev_device->properties, "ID_INPUT_MOUSE", "1", 0);
         }
     }
-    else if (find_bit(ev_bits, ev_cnt, EV_ABS)) {
-        if (find_bit(key_bits, key_cnt, BTN_SELECT) || find_bit(key_bits, key_cnt, BTN_TR) ||
-            find_bit(key_bits, key_cnt, BTN_START) || find_bit(key_bits, key_cnt, BTN_TL)) {
-            if (find_bit(key_bits, key_cnt, BTN_TOUCH)) {
+    else if (test_bit(ev_bits, EV_ABS)) {
+        if (test_bit(key_bits, BTN_SELECT) || test_bit(key_bits, BTN_TR) ||
+            test_bit(key_bits, BTN_START) || test_bit(key_bits, BTN_TL)) {
+            if (test_bit(key_bits, BTN_TOUCH)) {
                 udev_list_entry_add(&udev_device->properties, "ID_INPUT_TOUCHSCREEN", "1", 0);
             }
             else {
                 udev_list_entry_add(&udev_device->properties, "ID_INPUT_JOYSTICK", "1", 0);
             }
         }
-        else if (find_bit(abs_bits, abs_cnt, ABS_Y) && find_bit(abs_bits, abs_cnt, ABS_X)) {
-            if (find_bit(abs_bits, abs_cnt, ABS_Z) && !find_bit(ev_bits, ev_cnt, EV_KEY)) {
+        else if (test_bit(abs_bits, ABS_Y) && test_bit(abs_bits, ABS_X)) {
+            if (test_bit(abs_bits, ABS_Z) && !test_bit(ev_bits, EV_KEY)) {
                 udev_list_entry_add(&udev_device->properties, "ID_INPUT_ACCELEROMETER", "1", 0);
             }
-            else if (find_bit(key_bits, key_cnt, BTN_STYLUS) || find_bit(key_bits, key_cnt, BTN_TOOL_PEN)) {
+            else if (test_bit(key_bits, BTN_STYLUS) || test_bit(key_bits, BTN_TOOL_PEN)) {
                 udev_list_entry_add(&udev_device->properties, "ID_INPUT_TABLET", "1", 0);
             }
-            else if (find_bit(key_bits, key_cnt, BTN_TOUCH)) {
-                if (find_bit(key_bits, key_cnt, BTN_TOOL_FINGER)) {
+            else if (test_bit(key_bits, BTN_TOUCH)) {
+                if (test_bit(key_bits, BTN_TOOL_FINGER)) {
                     udev_list_entry_add(&udev_device->properties, "ID_INPUT_TOUCHPAD", "1", 0);
                 }
                 else {
                     udev_list_entry_add(&udev_device->properties, "ID_INPUT_TOUCHSCREEN", "1", 0);
                 }
             }
-            else if (find_bit(key_bits, key_cnt, BTN_MOUSE)) {
+            else if (test_bit(key_bits, BTN_MOUSE)) {
                 udev_list_entry_add(&udev_device->properties, "ID_INPUT_MOUSE", "1", 0);
             }
         }
     }
 
-    if (find_bit(ev_bits, ev_cnt, EV_KEY)) {
+    if (test_bit(ev_bits, EV_KEY)) {
         udev_list_entry_add(&udev_device->properties, "ID_INPUT_KEY", "1", 0);
 
-        if (find_bit(key_bits, key_cnt, KEY_ENTER)) {
+        if (test_bit(key_bits, KEY_ENTER)) {
             udev_list_entry_add(&udev_device->properties, "ID_INPUT_KEYBOARD", "1", 0);
         }
     }
