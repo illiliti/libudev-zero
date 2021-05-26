@@ -357,15 +357,17 @@ static void make_bit(unsigned long *arr, int cnt, const char *str)
         return;
     }
 
-    for (i = 0, len = strlen(str); i < cnt && len > 0; len--) {
+    for (i = 0, len = strlen(str); len > 0; len--) {
         if (str[len] == ' ') {
             arr[i++] = strtoul(str + len + 1, NULL, 16);
         }
+
+        if (i == cnt) {
+            return;
+        }
     }
 
-    if (i < cnt) {
-        arr[i] = strtoul(str, NULL, 16);
-    }
+    arr[i] = strtoul(str, NULL, 16);
 }
 
 static int test_bit(unsigned long *arr, unsigned long bit)
