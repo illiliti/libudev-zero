@@ -363,7 +363,9 @@ static void make_bit(unsigned long *arr, int cnt, const char *str)
         }
     }
 
-    arr[i] = strtoul(str, NULL, 16);
+    if (i < cnt) {
+        arr[i] = strtoul(str, NULL, 16);
+    }
 }
 
 static int test_bit(unsigned long *arr, unsigned long bit)
