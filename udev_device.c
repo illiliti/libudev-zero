@@ -303,12 +303,12 @@ int udev_device_set_sysattr_value(struct udev_device *udev_device, const char *s
     return 0;
 }
 
-static char *udev_device_read_symlink(struct udev_device *udev_device, const char *name)
+static char *read_symlink(const char *syspath, const char *name)
 {
     char link[PATH_MAX], path[PATH_MAX];
     ssize_t len;
 
-    snprintf(path, sizeof(path), "%s/%s", udev_device_get_syspath(udev_device), name);
+    snprintf(path, sizeof(path), "%s/%s", syspath, name);
     len = readlink(path, link, sizeof(link));
 
     if (len == -1) {
@@ -319,7 +319,7 @@ static char *udev_device_read_symlink(struct udev_device *udev_device, const cha
     return strdup(strrchr(link, '/') + 1);
 }
 
-static void udev_device_set_properties_from_uevent(struct udev_device *udev_device)
+static void set_properties_from_uevent(struct udev_device *udev_device)
 {
     char line[LINE_MAX], path[PATH_MAX], devnode[PATH_MAX];
     FILE *file;
@@ -360,10 +360,10 @@ static void make_bit(unsigned long *arr, int cnt, const char *str)
     for (i = 0, len = strlen(str); len > 0; len--) {
         if (str[len] == ' ') {
             arr[i++] = strtoul(str + len + 1, NULL, 16);
-        }
 
-        if (i == cnt) {
-            return;
+            if (i == cnt) {
+                return;
+            }
         }
     }
 
@@ -375,7 +375,7 @@ static int test_bit(unsigned long *arr, unsigned long bit)
     return arr[BIT_WORD(bit)] & BIT_MASK(bit);
 }
 
-static void udev_device_set_properties_from_evdev(struct udev_device *udev_device)
+static void set_properties_from_evdev(struct udev_device *udev_device)
 {
     // https://www.kernel.org/doc/html/latest/driver-api/input.html#c.input_dev
     unsigned long prop_bits[BITS_TO_LONGS(INPUT_PROP_CNT)] = {0};
@@ -472,7 +472,7 @@ static void udev_device_set_properties_from_evdev(struct udev_device *udev_devic
     }
 }
 
-static void udev_device_set_properties_from_props(struct udev_device *udev_device)
+static void set_properties_from_props(struct udev_device *udev_device)
 {
     const char *sysname, *subsystem;
     struct udev_device *parent;
@@ -533,8 +533,8 @@ struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *
     udev_list_entry_add(&udev_device->properties, "DEVPATH", path + 4, 0);
 
     sysname = strrchr(path, '/') + 1;
-    driver = udev_device_read_symlink(udev_device, "driver");
-    subsystem = udev_device_read_symlink(udev_device, "subsystem");
+    driver = read_symlink(path, "driver");
+    subsystem = read_symlink(path, "subsystem");
 
     udev_list_entry_add(&udev_device->properties, "SUBSYSTEM", subsystem, 0);
     udev_list_entry_add(&udev_device->properties, "SYSNAME", sysname, 0);
@@ -547,9 +547,9 @@ struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *
         }
     }
 
-    udev_device_set_properties_from_uevent(udev_device);
-    udev_device_set_properties_from_evdev(udev_device);
-    udev_device_set_properties_from_props(udev_device);
+    set_properties_from_uevent(udev_device);
+    set_properties_from_evdev(udev_device);
+    set_properties_from_props(udev_device);
 
     free(driver);
     free(subsystem);
@@ -668,8 +668,8 @@ struct udev_device *udev_device_new_from_file(struct udev *udev, const char *pat
         return NULL;
     }
 
-    udev_device_set_properties_from_props(udev_device);
-    udev_device_set_properties_from_evdev(udev_device);
+    set_properties_from_props(udev_device);
+    set_properties_from_evdev(udev_device);
     return udev_device;
 }
 

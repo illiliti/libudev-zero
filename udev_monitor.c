@@ -33,7 +33,7 @@ struct udev_monitor {
     int efd;
 };
 
-static int udev_monitor_filter_devtype(struct udev_monitor *udev_monitor, struct udev_device *udev_device)
+static int filter_devtype(struct udev_monitor *udev_monitor, struct udev_device *udev_device)
 {
     struct udev_list_entry *list_entry;
     const char *devtype;
@@ -60,7 +60,7 @@ static int udev_monitor_filter_devtype(struct udev_monitor *udev_monitor, struct
     return 0;
 }
 
-static int udev_monitor_filter_subsystem(struct udev_monitor *udev_monitor, struct udev_device *udev_device)
+static int filter_subsystem(struct udev_monitor *udev_monitor, struct udev_device *udev_device)
 {
     struct udev_list_entry *list_entry;
     const char *subsystem;
@@ -103,8 +103,8 @@ struct udev_device *udev_monitor_receive_device(struct udev_monitor *udev_monito
         return NULL;
     }
 
-    if (!udev_monitor_filter_subsystem(udev_monitor, udev_device) ||
-        !udev_monitor_filter_devtype(udev_monitor, udev_device)) {
+    if (!filter_subsystem(udev_monitor, udev_device) ||
+        !filter_devtype(udev_monitor, udev_device)) {
         udev_device_unref(udev_device);
         return NULL;
     }
@@ -112,7 +112,7 @@ struct udev_device *udev_monitor_receive_device(struct udev_monitor *udev_monito
     return udev_device;
 }
 
-static void *udev_monitor_handle_event(void *ptr)
+static void *handle_event(void *ptr)
 {
     struct udev_monitor *udev_monitor = ptr;
     struct inotify_event *event;
@@ -173,7 +173,7 @@ int udev_monitor_enable_receiving(struct udev_monitor *udev_monitor)
     pthread_barrier_init(&udev_monitor->barrier, NULL, THREADS_MAX + 1);
 
     for (i = 0; i < THREADS_MAX; i++) {
-        pthread_create(&udev_monitor->thread[i], &attr, udev_monitor_handle_event, udev_monitor);
+        pthread_create(&udev_monitor->thread[i], &attr, handle_event, udev_monitor);
     }
 
     pthread_attr_destroy(&attr);

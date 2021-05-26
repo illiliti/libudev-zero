@@ -73,7 +73,7 @@ int udev_enumerate_add_match_sysname(struct udev_enumerate *udev_enumerate, cons
     return 0;
 }
 
-static int udev_enumerate_filter_subsystem(struct udev_enumerate *udev_enumerate, struct udev_device *udev_device)
+static int filter_subsystem(struct udev_enumerate *udev_enumerate, struct udev_device *udev_device)
 {
     struct udev_list_entry *list_entry;
     const char *subsystem;
@@ -110,7 +110,7 @@ static int udev_enumerate_filter_subsystem(struct udev_enumerate *udev_enumerate
     return 1;
 }
 
-static int udev_enumerate_filter_sysname(struct udev_enumerate *udev_enumerate, struct udev_device *udev_device)
+static int filter_sysname(struct udev_enumerate *udev_enumerate, struct udev_device *udev_device)
 {
     struct udev_list_entry *list_entry;
     const char *sysname;
@@ -133,7 +133,7 @@ static int udev_enumerate_filter_sysname(struct udev_enumerate *udev_enumerate, 
     return 0;
 }
 
-static int udev_enumerate_filter_property(struct udev_enumerate *udev_enumerate, struct udev_device *udev_device)
+static int filter_property(struct udev_enumerate *udev_enumerate, struct udev_device *udev_device)
 {
     const char *property, *property2, *value, *value2;
     struct udev_list_entry *list_entry, *list_entry2;
@@ -176,7 +176,7 @@ static int udev_enumerate_filter_property(struct udev_enumerate *udev_enumerate,
     return 0;
 }
 
-static int udev_enumerate_filter_sysattr(struct udev_enumerate *udev_enumerate, struct udev_device *udev_device)
+static int filter_sysattr(struct udev_enumerate *udev_enumerate, struct udev_device *udev_device)
 {
     struct udev_list_entry *list_entry;
     const char *sysattr, *value;
@@ -222,7 +222,7 @@ static int udev_enumerate_filter_sysattr(struct udev_enumerate *udev_enumerate, 
     return 1;
 }
 
-static void *udev_enumerate_add_device(void *ptr)
+static void *add_device(void *ptr)
 {
     struct udev_enumerate_thread *thread = ptr;
     struct udev_device *udev_device;
@@ -233,10 +233,10 @@ static void *udev_enumerate_add_device(void *ptr)
         return NULL;
     }
 
-    if (!udev_enumerate_filter_subsystem(thread->udev_enumerate, udev_device) ||
-        !udev_enumerate_filter_sysname(thread->udev_enumerate, udev_device) ||
-        !udev_enumerate_filter_property(thread->udev_enumerate, udev_device) ||
-        !udev_enumerate_filter_sysattr(thread->udev_enumerate, udev_device)) {
+    if (!filter_subsystem(thread->udev_enumerate, udev_device) ||
+        !filter_sysname(thread->udev_enumerate, udev_device) ||
+        !filter_property(thread->udev_enumerate, udev_device) ||
+        !filter_sysattr(thread->udev_enumerate, udev_device)) {
         udev_device_unref(udev_device);
         return NULL;
     }
@@ -254,7 +254,7 @@ static int filter_dot(const struct dirent *de)
     return de->d_name[0] != '.';
 }
 
-static int udev_enumerate_add_devices(struct udev_enumerate *udev_enumerate, const char *path)
+static int scan_devices(struct udev_enumerate *udev_enumerate, const char *path)
 {
     struct udev_enumerate_thread *thread;
     pthread_mutex_t mutex;
@@ -285,7 +285,7 @@ static int udev_enumerate_add_devices(struct udev_enumerate *udev_enumerate, con
         thread[i].udev_enumerate = udev_enumerate;
 
         snprintf(thread[i].path, sizeof(thread[i].path), "%s/%s", path, de[i]->d_name);
-        pthread_create(&thread[i].thread, NULL, udev_enumerate_add_device, &thread[i]);
+        pthread_create(&thread[i].thread, NULL, add_device, &thread[i]);
     }
 
     for (i = 0; i < cnt; i++) {
@@ -312,7 +312,7 @@ int udev_enumerate_scan_devices(struct udev_enumerate *udev_enumerate)
     }
 
     for (i = 0; path[i]; i++) {
-        if (udev_enumerate_add_devices(udev_enumerate, path[i]) == -1) {
+        if (scan_devices(udev_enumerate, path[i]) == -1) {
             return -1;
         }
     }
