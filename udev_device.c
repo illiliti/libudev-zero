@@ -222,7 +222,7 @@ const char *udev_device_get_property_value(struct udev_device *udev_device, cons
 const char *udev_device_get_sysattr_value(struct udev_device *udev_device, const char *sysattr)
 {
     struct udev_list_entry *list_entry;
-    char data[PAGESIZE], path[PATH_MAX];
+    char data[4096], path[PATH_MAX];
     struct stat st;
     size_t len;
     FILE *file;
