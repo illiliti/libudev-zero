@@ -9,12 +9,11 @@
 #include <pthread.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
+#include <sys/eventfd.h>
 #include <sys/inotify.h>
 
 #include "udev.h"
 #include "udev_list.h"
-
-#define THREADS_MAX 5
 
 #ifndef UDEV_MONITOR_DIR
 #define UDEV_MONITOR_DIR "/tmp/.libudev-zero"
@@ -23,12 +22,11 @@
 struct udev_monitor {
     struct udev_list_entry subsystem_match;
     struct udev_list_entry devtype_match;
-    pthread_t thread[THREADS_MAX];
-    pthread_barrier_t barrier;
+    pthread_t thread;
     struct udev *udev;
     int refcount;
+    int signal_fd;
     int sfd[2];
-    int pfd[2];
     int ifd;
 };
 
@@ -123,7 +121,7 @@ static void *handle_event(void *ptr)
     poll_fds[0].fd = udev_monitor->ifd;
     poll_fds[0].events = POLLIN;
 
-    poll_fds[1].fd = udev_monitor->pfd[0];
+    poll_fds[1].fd = udev_monitor->signal_fd;
     poll_fds[1].events = POLLIN;
 
     while (1) {
@@ -134,9 +132,8 @@ static void *handle_event(void *ptr)
             break;
         }
 
+        // exit on explicit signal
         if (poll_fds[1].revents & POLLIN) {
-            read(udev_monitor->pfd[0], data, 1);
-            write(udev_monitor->pfd[1], "1", 1);
             break;
         }
 
@@ -144,6 +141,11 @@ static void *handle_event(void *ptr)
 
         if (len == -1) {
             continue;
+        }
+
+        // exit on ifd error or close
+        if (!(poll_fds[0].revents & POLLIN) || len == 0) {
+            break;
         }
 
         for (i = 0; i < len; i += sizeof(struct inotify_event) + event->len) {
@@ -158,28 +160,16 @@ static void *handle_event(void *ptr)
         }
     }
 
-    pthread_barrier_wait(&udev_monitor->barrier);
     return NULL;
 }
 
 int udev_monitor_enable_receiving(struct udev_monitor *udev_monitor)
 {
-    pthread_attr_t attr;
-    int i;
-
     if (!udev_monitor) {
         return -1;
     }
 
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    pthread_barrier_init(&udev_monitor->barrier, NULL, THREADS_MAX + 1);
-
-    for (i = 0; i < THREADS_MAX; i++) {
-        pthread_create(&udev_monitor->thread[i], &attr, handle_event, udev_monitor);
-    }
-
-    pthread_attr_destroy(&attr);
+    pthread_create(&udev_monitor->thread, NULL, handle_event, udev_monitor);
     return 0;
 }
 
@@ -232,7 +222,6 @@ struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char
 {
     struct udev_monitor *udev_monitor;
     struct stat st;
-    int i;
 
     if (!udev || !name) {
         return NULL;
@@ -257,40 +246,34 @@ struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char
         return NULL;
     }
 
+    udev_monitor->signal_fd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
+    if (udev_monitor->signal_fd == -1) {
+        goto error_free;
+    }
+
     udev_monitor->ifd = inotify_init1(IN_CLOEXEC | IN_NONBLOCK);
 
     if (udev_monitor->ifd == -1) {
-        goto error_free;
+        goto error_signal_fd;
     }
 
     if (inotify_add_watch(udev_monitor->ifd, UDEV_MONITOR_DIR, IN_CLOSE_WRITE | IN_EXCL_UNLINK) == -1) {
         goto error_ifd;
     }
 
-    if (pipe(udev_monitor->pfd) == -1) {
-        goto error_ifd;
-    }
-
-    for (i = 0; i < 2; i++) {
-        fcntl(udev_monitor->pfd[i], F_SETFD, FD_CLOEXEC);
-        fcntl(udev_monitor->pfd[i], F_SETFL, O_NONBLOCK);
-    }
-
     if (socketpair(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC | SOCK_NONBLOCK, 0, udev_monitor->sfd) == -1) {
-        goto error_pfd;
+        goto error_ifd;
     }
 
     udev_monitor->refcount = 1;
     udev_monitor->udev = udev;
     return udev_monitor;
 
-error_pfd:
-    for (i = 0; i < 2; i++) {
-        close(udev_monitor->pfd[i]);
-    }
-
 error_ifd:
     close(udev_monitor->ifd);
+
+error_signal_fd:
+    close(udev_monitor->signal_fd);
 
 error_free:
     free(udev_monitor);
@@ -319,18 +302,19 @@ struct udev_monitor *udev_monitor_unref(struct udev_monitor *udev_monitor)
         return NULL;
     }
 
-    write(udev_monitor->pfd[1], "1", 1);
-    pthread_barrier_wait(&udev_monitor->barrier);
-    pthread_barrier_destroy(&udev_monitor->barrier);
+    // Wake up the event thread
+    eventfd_write(udev_monitor->signal_fd, 1);
+    // waiting for event thread to end before freeing udev_monitor
+    pthread_join(udev_monitor->thread, NULL);
 
     udev_list_entry_free_all(&udev_monitor->devtype_match);
     udev_list_entry_free_all(&udev_monitor->subsystem_match);
 
     for (i = 0; i < 2; i++) {
-        close(udev_monitor->pfd[i]);
         close(udev_monitor->sfd[i]);
     }
 
+    close(udev_monitor->signal_fd);
     close(udev_monitor->ifd);
     free(udev_monitor);
     return NULL;
