@@ -250,9 +250,9 @@ const char *udev_device_get_sysattr_value(struct udev_device *udev_device, const
     }
 
     // TODO dynamic allocation of data
-    len = fread(data, 1, sizeof(data)-1, file);
+    len = fread(data, 1, sizeof(data) - 1, file);
 
-    if (len != sizeof(data)-1 && ferror(file)) {
+    if (len != sizeof(data) - 1 && ferror(file)) {
         fclose(file);
         return NULL;
     }
