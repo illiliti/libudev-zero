@@ -129,12 +129,13 @@ static void *handle_event(void *ptr)
             if (errno == EINTR) {
                 continue;
             }
-            break;
+
+            return NULL;
         }
 
         // exit on explicit signal
         if (poll_fds[1].revents & POLLIN) {
-            break;
+            return NULL;
         }
 
         len = read(udev_monitor->ifd, data, sizeof(data));
@@ -145,7 +146,7 @@ static void *handle_event(void *ptr)
 
         // exit on ifd error or close
         if (!(poll_fds[0].revents & POLLIN) || len == 0) {
-            break;
+            return NULL;
         }
 
         for (i = 0; i < len; i += sizeof(struct inotify_event) + event->len) {
@@ -160,6 +161,7 @@ static void *handle_event(void *ptr)
         }
     }
 
+    // unreacheble
     return NULL;
 }
 
@@ -169,8 +171,7 @@ int udev_monitor_enable_receiving(struct udev_monitor *udev_monitor)
         return -1;
     }
 
-    pthread_create(&udev_monitor->thread, NULL, handle_event, udev_monitor);
-    return 0;
+    return pthread_create(&udev_monitor->thread, NULL, handle_event, udev_monitor);
 }
 
 /* XXX NOT IMPLEMENTED */ int udev_monitor_set_receive_buffer_size(struct udev_monitor *udev_monitor, int size)
@@ -247,35 +248,36 @@ struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char
     }
 
     udev_monitor->signal_fd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
+
     if (udev_monitor->signal_fd == -1) {
-        goto error_free;
+        goto free_monitor;
     }
 
     udev_monitor->ifd = inotify_init1(IN_CLOEXEC | IN_NONBLOCK);
 
     if (udev_monitor->ifd == -1) {
-        goto error_signal_fd;
+        goto close_signal_fd;
     }
 
     if (inotify_add_watch(udev_monitor->ifd, UDEV_MONITOR_DIR, IN_CLOSE_WRITE | IN_EXCL_UNLINK) == -1) {
-        goto error_ifd;
+        goto close_ifd;
     }
 
     if (socketpair(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC | SOCK_NONBLOCK, 0, udev_monitor->sfd) == -1) {
-        goto error_ifd;
+        goto close_ifd;
     }
 
     udev_monitor->refcount = 1;
     udev_monitor->udev = udev;
     return udev_monitor;
 
-error_ifd:
+close_ifd:
     close(udev_monitor->ifd);
 
-error_signal_fd:
+close_signal_fd:
     close(udev_monitor->signal_fd);
 
-error_free:
+free_monitor:
     free(udev_monitor);
     return NULL;
 }
