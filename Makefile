@@ -3,6 +3,7 @@
 PREFIX = /usr/local
 LIBDIR = ${PREFIX}/lib
 INCLUDEDIR = ${PREFIX}/include
+PKGCONFIGDIR = ${LIBDIR}/pkgconfig
 XCFLAGS = ${CPPFLAGS} ${CFLAGS} -std=c99 -fPIC -pthread -D_XOPEN_SOURCE=700 \
 		  -Wall -Wextra -Wpedantic -Wmissing-prototypes -Wstrict-prototypes \
 		  -Wno-unused-parameter
@@ -44,18 +45,18 @@ libudev.pc: libudev.pc.in
 		libudev.pc.in > libudev.pc
 
 install: libudev.so libudev.a libudev.pc
-	mkdir -p         ${DESTDIR}${INCLUDEDIR} ${DESTDIR}${LIBDIR}/pkgconfig
+	mkdir -p         ${DESTDIR}${INCLUDEDIR} ${DESTDIR}${LIBDIR} ${DESTDIR}${PKGCONFIGDIR}
 	cp -f udev.h  	 ${DESTDIR}${INCLUDEDIR}/libudev.h
 	cp -f libudev.a  ${DESTDIR}${LIBDIR}/libudev.a
 	cp -f libudev.so ${DESTDIR}${LIBDIR}/libudev.so
 	ln -fs libudev.so ${DESTDIR}${LIBDIR}/libudev.so.1
-	cp -f libudev.pc ${DESTDIR}${LIBDIR}/pkgconfig/
+	cp -f libudev.pc ${DESTDIR}${PKGCONFIGDIR}/libudev.pc
 
 uninstall:
 	rm -f ${DESTDIR}${LIBDIR}/libudev.a \
           ${DESTDIR}${LIBDIR}/libudev.so \
           ${DESTDIR}${LIBDIR}/libudev.so.1 \
-          ${DESTDIR}${LIBDIR}/pkgconfig/libudev.pc \
+          ${DESTDIR}${PKGCONFIGDIR}/libudev.pc \
           ${DESTDIR}${INCLUDEDIR}/libudev.h
 
 clean:
