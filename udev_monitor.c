@@ -258,7 +258,7 @@ struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char
         goto close_signal_fd;
     }
 
-    if (inotify_add_watch(udev_monitor->ifd, UDEV_MONITOR_DIR, IN_CLOSE_WRITE | IN_EXCL_UNLINK) == -1) {
+    if (inotify_add_watch(udev_monitor->ifd, UDEV_MONITOR_DIR, IN_CLOSE_WRITE | IN_EXCL_UNLINK | IN_ONLYDIR) == -1) {
         goto close_ifd;
     }
 
