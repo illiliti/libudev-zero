@@ -156,6 +156,10 @@ static void *handle_event(void *ptr)
                 break;
             }
 
+            if (event->mask & IN_ISDIR) {
+                continue;
+            }
+
             send(udev_monitor->sfd[1], event->name, event->len, 0);
         }
     }
