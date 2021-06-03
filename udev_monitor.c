@@ -170,7 +170,7 @@ int udev_monitor_enable_receiving(struct udev_monitor *udev_monitor)
         return -1;
     }
 
-    return pthread_create(&udev_monitor->thread, NULL, handle_event, udev_monitor);
+    return (pthread_create(&udev_monitor->thread, NULL, handle_event, udev_monitor) == 0) - 1;
 }
 
 /* XXX NOT IMPLEMENTED */ int udev_monitor_set_receive_buffer_size(struct udev_monitor *udev_monitor, int size)
