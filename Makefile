@@ -11,7 +11,6 @@ XARFLAGS = -rc
 
 OBJ = \
 	  udev.o \
-	  udev_hwdb.o \
 	  udev_list.o \
 	  udev_device.o \
 	  udev_monitor.o \
