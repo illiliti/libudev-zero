@@ -260,6 +260,7 @@ const char *udev_device_get_sysattr_value(struct udev_device *udev_device, const
     fclose(file);
     data[len] = '\0';
 
+    // TODO strrchr?
     while (len-- > 0 && data[len] == '\n') {
         data[len] = '\0';
     }
@@ -335,7 +336,7 @@ static void set_properties_from_uevent(struct udev_device *udev_device)
     while (fgets(line, sizeof(line), file)) {
         line[strlen(line) - 1] = '\0';
 
-        if (strncmp(line, "DEVNAME", 7) == 0) {
+        if (strncmp(line, "DEVNAME=", 8) == 0) {
             snprintf(devnode, sizeof(devnode), "/dev/%s", line + 8);
             udev_list_entry_add(&udev_device->properties, "DEVNAME", devnode, 0);
         }
@@ -463,6 +464,7 @@ static void set_properties_from_evdev(struct udev_device *udev_device)
         }
     }
 
+    // TODO do not assume keyboard if EV_KEY
     if (test_bit(ev_bits, EV_KEY)) {
         udev_list_entry_add(&udev_device->properties, "ID_INPUT_KEY", "1", 0);
 
@@ -560,7 +562,7 @@ struct udev_device *udev_device_new_from_devnum(struct udev *udev, char type, de
 {
     char path[PATH_MAX];
 
-    if (!udev || !type || !devnum) {
+    if (!udev) {
         return NULL;
     }
 
@@ -638,7 +640,7 @@ struct udev_device *udev_device_new_from_file(struct udev *udev, const char *pat
     while (fgets(line, sizeof(line), file)) {
         line[strlen(line) - 1] = '\0';
 
-        if (strncmp(line, "DEVPATH", 7) == 0) {
+        if (strncmp(line, "DEVPATH=", 8) == 0) {
             snprintf(syspath, sizeof(syspath), "/sys%s", line + 8);
             udev_list_entry_add(&udev_device->properties, "SYSPATH", syspath, 0);
             udev_list_entry_add(&udev_device->properties, "DEVPATH", line + 8, 0);
@@ -655,7 +657,7 @@ struct udev_device *udev_device_new_from_file(struct udev *udev, const char *pat
 
             cnt++;
         }
-        else if (strncmp(line, "DEVNAME", 7) == 0) {
+        else if (strncmp(line, "DEVNAME=", 8) == 0) {
             snprintf(devnode, sizeof(devnode), "/dev/%s", line + 8);
             udev_list_entry_add(&udev_device->properties, "DEVNAME", devnode, 0);
         }
