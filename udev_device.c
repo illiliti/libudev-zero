@@ -672,9 +672,9 @@ struct udev_device *udev_device_new_from_file(struct udev *udev, const char *pat
 
             *pos = '\0';
 
-            if (strcmp(line, "SUBSYSTEM") == 0 ||
-                strcmp(line, "ACTION") == 0 ||
-                strcmp(line, "SEQNUM") == 0) {
+            if (strncmp(line, "SUBSYSTEM", 10) == 0 ||
+                strncmp(line, "ACTION", 7) == 0 ||
+                strncmp(line, "SEQNUM", 7) == 0) {
                 cnt++;
             }
 
