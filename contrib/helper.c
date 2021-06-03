@@ -45,8 +45,8 @@ int main(int argc, char **argv)
     }
 
     for (i = 0; environ[i]; i++) {
-        if (strncmp(environ[i], "PATH=", 5) == 0 ||
-            strncmp(environ[i], "HOME=", 5) == 0) {
+        if (strcmp(environ[i], "PATH=") == 0 ||
+            strcmp(environ[i], "HOME=") == 0) {
             continue;
         }
 
