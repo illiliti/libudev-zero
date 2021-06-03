@@ -15,8 +15,8 @@
 #define LONG_BIT (sizeof(unsigned long) * 8)
 #endif
 
-// https://www.kernel.org/doc/html/latest/input/ff.html#querying-device-capabilities
-// https://www.kernel.org/doc/html/latest/input/input-programming.html#bits-to-longs-bit-word-bit-mask
+// https://kernel.org/doc/html/latest/input/ff.html#querying-device-capabilities
+// https://kernel.org/doc/html/latest/input/input-programming.html#bits-to-longs-bit-word-bit-mask
 #define BIT_WORD(x) ((x) / LONG_BIT)
 #define BIT_MASK(x) (1UL << ((x) % LONG_BIT))
 #define BITS_TO_LONGS(x) (((x) + LONG_BIT - 1) / LONG_BIT)
@@ -377,7 +377,7 @@ static int test_bit(unsigned long *arr, unsigned long bit)
 
 static void set_properties_from_evdev(struct udev_device *udev_device)
 {
-    // https://www.kernel.org/doc/html/latest/driver-api/input.html#c.input_dev
+    // https://kernel.org/doc/html/latest/driver-api/input.html#c.input_dev
     unsigned long prop_bits[BITS_TO_LONGS(INPUT_PROP_CNT)] = {0};
     unsigned long abs_bits[BITS_TO_LONGS(ABS_CNT)] = {0};
     unsigned long rel_bits[BITS_TO_LONGS(REL_CNT)] = {0};
@@ -603,11 +603,11 @@ struct udev_device *udev_device_new_from_file(struct udev *udev, const char *pat
 {
     char line[LINE_MAX], syspath[PATH_MAX], devnode[PATH_MAX];
     struct udev_device *udev_device;
-    char *sysname = NULL;
     struct stat st;
+    char *sysname;
     FILE *file;
+    int i, cnt;
     char *pos;
-    int i;
 
     if (stat(path, &st) != 0 || st.st_size > 8192) {
         return NULL;
@@ -625,6 +625,8 @@ struct udev_device *udev_device_new_from_file(struct udev *udev, const char *pat
         fclose(file);
         return NULL;
     }
+
+    cnt = 0;
 
     udev_device->udev = udev;
     udev_device->refcount = 1;
@@ -650,20 +652,39 @@ struct udev_device *udev_device_new_from_file(struct udev *udev, const char *pat
                     break;
                 }
             }
+
+            cnt++;
         }
         else if (strcmp(line, "DEVNAME=") == 0) {
             snprintf(devnode, sizeof(devnode), "/dev/%s", line + 8);
             udev_list_entry_add(&udev_device->properties, "DEVNAME", devnode, 0);
         }
-        else if ((pos = strchr(line, '='))) {
+        else {
+            pos = strchr(line, '=');
+
+            // file is malformed, abort here.
+            if (!pos) {
+                cnt = 0;
+                break;
+            }
+
             *pos = '\0';
+
+            if (strcmp(line, "SUBSYSTEM") == 0 ||
+                strcmp(line, "ACTION") == 0 ||
+                strcmp(line, "SEQNUM") == 0) {
+                cnt++;
+            }
+
             udev_list_entry_add(&udev_device->properties, line, pos + 1, 0);
         }
     }
 
     fclose(file);
 
-    if (!sysname) {
+    // https://freedesktop.org/software/systemd/man/udev_device_new_from_environment.html
+    // > The keys DEVPATH, SUBSYSTEM, ACTION, and SEQNUM are mandatory.
+    if (cnt != 4) {
         udev_device_unref(udev_device);
         return NULL;
     }
