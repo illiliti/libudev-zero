@@ -264,7 +264,7 @@ static int scan_devices(struct udev_enumerate *udev_enumerate, const char *path)
     cnt = scandir(path, &de, filter_dot, NULL);
 
     if (cnt == -1) {
-        return -1;
+        return 0;
     }
 
     thread = calloc(cnt, sizeof(struct udev_enumerate_thread));
@@ -275,7 +275,7 @@ static int scan_devices(struct udev_enumerate *udev_enumerate, const char *path)
         }
 
         free(de);
-        return -1;
+        return 0;
     }
 
     pthread_mutex_init(&mutex, NULL);
@@ -285,7 +285,10 @@ static int scan_devices(struct udev_enumerate *udev_enumerate, const char *path)
         thread[i].udev_enumerate = udev_enumerate;
 
         snprintf(thread[i].path, sizeof(thread[i].path), "%s/%s", path, de[i]->d_name);
-        pthread_create(&thread[i].thread, NULL, add_device, &thread[i]);
+
+        if (pthread_create(&thread[i].thread, NULL, add_device, &thread[i]) != 0) {
+            return 0;
+        }
     }
 
     for (i = 0; i < cnt; i++) {
@@ -299,7 +302,7 @@ static int scan_devices(struct udev_enumerate *udev_enumerate, const char *path)
     free(de);
     free(thread);
     pthread_mutex_destroy(&mutex);
-    return 0;
+    return 1;
 }
 
 int udev_enumerate_scan_devices(struct udev_enumerate *udev_enumerate)
@@ -312,7 +315,7 @@ int udev_enumerate_scan_devices(struct udev_enumerate *udev_enumerate)
     }
 
     for (i = 0; path[i]; i++) {
-        if (scan_devices(udev_enumerate, path[i]) == -1) {
+        if (!scan_devices(udev_enumerate, path[i])) {
             return -1;
         }
     }
