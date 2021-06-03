@@ -21,10 +21,11 @@
 struct udev_monitor {
     struct udev_list_entry subsystem_match;
     struct udev_list_entry devtype_match;
-    pthread_t thread;
     struct udev *udev;
-    int refcount;
+    pthread_t thread;
+    const char *dir;
     int signal_fd;
+    int refcount;
     int sfd[2];
     int ifd;
 };
@@ -85,14 +86,18 @@ static int filter_subsystem(struct udev_monitor *udev_monitor, struct udev_devic
 
 struct udev_device *udev_monitor_receive_device(struct udev_monitor *udev_monitor)
 {
-    char file[PATH_MAX + sizeof(UDEV_MONITOR_DIR)], data[4096];
+    char file[PATH_MAX], data[4096];
     struct udev_device *udev_device;
 
     if (recv(udev_monitor->sfd[0], data, sizeof(data), 0) == -1) {
         return NULL;
     }
 
-    snprintf(file, sizeof(file), "%s/%s", UDEV_MONITOR_DIR, data);
+    // check truncation error to make gcc happy
+    if ((unsigned)snprintf(file, sizeof(file), "%s/%s", udev_monitor->dir, data) >= sizeof(file)) {
+        return NULL;
+    }
+
     udev_device = udev_device_new_from_file(udev_monitor->udev, file);
 
     if (!udev_device) {
@@ -170,11 +175,7 @@ static void *handle_event(void *ptr)
 
 int udev_monitor_enable_receiving(struct udev_monitor *udev_monitor)
 {
-    if (!udev_monitor) {
-        return -1;
-    }
-
-    return (pthread_create(&udev_monitor->thread, NULL, handle_event, udev_monitor) == 0) - 1;
+    return udev_monitor ? (pthread_create(&udev_monitor->thread, NULL, handle_event, udev_monitor) == 0) - 1 : -1;
 }
 
 /* XXX NOT IMPLEMENTED */ int udev_monitor_set_receive_buffer_size(struct udev_monitor *udev_monitor, int size)
@@ -225,22 +226,8 @@ int udev_monitor_filter_add_match_subsystem_devtype(struct udev_monitor *udev_mo
 struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char *name)
 {
     struct udev_monitor *udev_monitor;
-    struct stat st;
 
     if (!udev || !name) {
-        return NULL;
-    }
-
-    if (lstat(UDEV_MONITOR_DIR, &st) != 0) {
-        if (mkdir(UDEV_MONITOR_DIR, 0) == -1) {
-            return NULL;
-        }
-
-        if (chmod(UDEV_MONITOR_DIR, 0777) == -1) {
-            return NULL;
-        }
-    }
-    else if (!S_ISDIR(st.st_mode)) {
         return NULL;
     }
 
@@ -262,7 +249,28 @@ struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char
         goto close_signal_fd;
     }
 
-    if (inotify_add_watch(udev_monitor->ifd, UDEV_MONITOR_DIR, IN_CLOSE_WRITE | IN_EXCL_UNLINK | IN_ONLYDIR) == -1) {
+    // TODO docs
+    udev_monitor->dir = getenv("UDEV_MONITOR_DIR");
+
+    if (!udev_monitor->dir || udev_monitor->dir[0] == '\0') {
+        udev_monitor->dir = UDEV_MONITOR_DIR;
+
+        if (access(udev_monitor->dir, R_OK | W_OK) == -1) {
+            if (errno != ENOENT) {
+                return NULL;
+            }
+
+            if (mkdir(udev_monitor->dir, 0) == -1) {
+                return NULL;
+            }
+
+            if (chmod(udev_monitor->dir, 1777) == -1) {
+                return NULL;
+            }
+        }
+    }
+
+    if (inotify_add_watch(udev_monitor->ifd, udev_monitor->dir, IN_CLOSE_WRITE | IN_EXCL_UNLINK | IN_ONLYDIR) == -1) {
         goto close_ifd;
     }
 
