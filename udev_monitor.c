@@ -137,14 +137,14 @@ static void *handle_event(void *ptr)
             return NULL;
         }
 
+        // exit on poll error
+        if (!(poll_fds[0].revents & POLLIN)) {
+            return NULL;
+        }
+
         len = read(udev_monitor->ifd, data, sizeof(data));
 
         if (len == -1) {
-            continue;
-        }
-
-        // exit on ifd error or close
-        if (!(poll_fds[0].revents & POLLIN)) {
             return NULL;
         }
 
