@@ -264,7 +264,7 @@ struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char
                 goto close_ifd;
             }
 
-            if (chmod(udev_monitor->dir, 1777) == -1) {
+            if (chmod(udev_monitor->dir, 0777) == -1) {
                 goto close_ifd;
             }
         }
