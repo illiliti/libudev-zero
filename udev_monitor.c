@@ -257,15 +257,15 @@ struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char
 
         if (access(udev_monitor->dir, R_OK | W_OK) == -1) {
             if (errno != ENOENT) {
-                return NULL;
+                goto close_ifd;
             }
 
             if (mkdir(udev_monitor->dir, 0) == -1) {
-                return NULL;
+                goto close_ifd;
             }
 
             if (chmod(udev_monitor->dir, 1777) == -1) {
-                return NULL;
+                goto close_ifd;
             }
         }
     }
