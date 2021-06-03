@@ -87,7 +87,7 @@ dev_t udev_device_get_devnum(struct udev_device *udev_device)
     major = udev_device_get_property_value(udev_device, "MAJOR");
     minor = udev_device_get_property_value(udev_device, "MINOR");
 
-    if (!major && !minor) {
+    if (!major || !minor) {
         return makedev(0, 0);
     }
 
