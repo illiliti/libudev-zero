@@ -335,7 +335,7 @@ static void set_properties_from_uevent(struct udev_device *udev_device)
     while (fgets(line, sizeof(line), file)) {
         line[strlen(line) - 1] = '\0';
 
-        if (strncmp(line, "DEVNAME", 7) == 0) {
+        if (strcmp(line, "DEVNAME=") == 0) {
             snprintf(devnode, sizeof(devnode), "/dev/%s", line + 8);
             udev_list_entry_add(&udev_device->properties, "DEVNAME", devnode, 0);
         }
@@ -636,7 +636,7 @@ struct udev_device *udev_device_new_from_file(struct udev *udev, const char *pat
     while (fgets(line, sizeof(line), file)) {
         line[strlen(line) - 1] = '\0';
 
-        if (strncmp(line, "DEVPATH", 7) == 0) {
+        if (strcmp(line, "DEVPATH=") == 0) {
             snprintf(syspath, sizeof(syspath), "/sys%s", line + 8);
             udev_list_entry_add(&udev_device->properties, "SYSPATH", syspath, 0);
             udev_list_entry_add(&udev_device->properties, "DEVPATH", line + 8, 0);
@@ -651,7 +651,7 @@ struct udev_device *udev_device_new_from_file(struct udev *udev, const char *pat
                 }
             }
         }
-        else if (strncmp(line, "DEVNAME", 7) == 0) {
+        else if (strcmp(line, "DEVNAME=") == 0) {
             snprintf(devnode, sizeof(devnode), "/dev/%s", line + 8);
             udev_list_entry_add(&udev_device->properties, "DEVNAME", devnode, 0);
         }
