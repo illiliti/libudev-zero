@@ -144,7 +144,7 @@ static void *handle_event(void *ptr)
         }
 
         // exit on ifd error or close
-        if (!(poll_fds[0].revents & POLLIN) || len == 0) {
+        if (!(poll_fds[0].revents & POLLIN)) {
             return NULL;
         }
 
@@ -160,7 +160,7 @@ static void *handle_event(void *ptr)
         }
     }
 
-    // unreacheble
+    // unreachable
     return NULL;
 }
 
