@@ -17,7 +17,7 @@ OBJ = \
 	  udev_monitor.o \
 	  udev_enumerate.o
 
-all: libudev.so libudev.a
+all: libudev.so.1 libudev.a
 
 .c.o:
 	${CC} ${XCFLAGS} -c -o $@ $<
@@ -25,7 +25,7 @@ all: libudev.so libudev.a
 libudev.a: ${OBJ}
 	${AR} ${XARFLAGS} $@ ${OBJ}
 
-libudev.so: ${OBJ}
+libudev.so.1: ${OBJ}
 	${CC} ${XCFLAGS} -o $@ ${OBJ} ${XLDFLAGS}
 
 libudev.pc: libudev.pc.in
@@ -48,8 +48,8 @@ install: libudev.so libudev.a libudev.pc
 	mkdir -p         ${DESTDIR}${INCLUDEDIR} ${DESTDIR}${LIBDIR} ${DESTDIR}${PKGCONFIGDIR}
 	cp -f udev.h  	 ${DESTDIR}${INCLUDEDIR}/libudev.h
 	cp -f libudev.a  ${DESTDIR}${LIBDIR}/libudev.a
-	cp -f libudev.so ${DESTDIR}${LIBDIR}/libudev.so
-	ln -fs libudev.so ${DESTDIR}${LIBDIR}/libudev.so.1
+	cp -f libudev.so.1 ${DESTDIR}${LIBDIR}/libudev.so.1
+	ln -fs libudev.so.1 ${DESTDIR}${LIBDIR}/libudev.so
 	cp -f libudev.pc ${DESTDIR}${PKGCONFIGDIR}/libudev.pc
 
 uninstall:
@@ -60,6 +60,6 @@ uninstall:
           ${DESTDIR}${INCLUDEDIR}/libudev.h
 
 clean:
-	rm -f libudev.so libudev.a libudev.pc ${OBJ}
+	rm -f libudev.so.1 libudev.a libudev.pc ${OBJ}
 
 .PHONY: all clean install uninstall
