@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: ISC
 .POSIX:
 
 PREFIX = /usr/local
