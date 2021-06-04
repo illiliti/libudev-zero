@@ -255,7 +255,7 @@ struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char
     if (!udev_monitor->dir || udev_monitor->dir[0] == '\0') {
         udev_monitor->dir = UDEV_MONITOR_DIR;
 
-        if (access(udev_monitor->dir, R_OK | W_OK) == -1) {
+        if (access(udev_monitor->dir, F_OK) == -1) {
             if (errno != ENOENT) {
                 goto close_ifd;
             }
