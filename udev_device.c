@@ -277,7 +277,6 @@ const char *udev_device_get_sysattr_value(struct udev_device *udev_device, const
     fclose(file);
     data[len] = '\0';
 
-    // TODO strrchr?
     while (len-- > 0 && data[len] == '\n') {
         data[len] = '\0';
     }
