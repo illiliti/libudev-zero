@@ -403,6 +403,7 @@ static void set_properties_from_evdev(struct udev_device *udev_device)
     unsigned long ev_bits[BITS_TO_LONGS(EV_CNT)] = {0};
     struct udev_device *parent;
     const char *subsystem;
+    unsigned long bit;
 
     subsystem = udev_device_get_subsystem(udev_device);
 
@@ -481,13 +482,25 @@ static void set_properties_from_evdev(struct udev_device *udev_device)
         }
     }
 
-    // TODO do not assume keyboard if EV_KEY
-    if (test_bit(ev_bits, EV_KEY)) {
+    if (!test_bit(ev_bits, EV_KEY)) {
+        return;
+    }
+
+    // iterate over key bits until BTN_* block is hit and test if bitmask has KEY_*.
+    // this way, we can check if device has keys or buttons.
+    // https://github.com/torvalds/linux/blob/f5b6eb1e018203913dfefcf6fa988649ad11ad6e/include/uapi/linux/input-event-codes.h#L76-L338
+    for (bit = KEY_ESC; bit < BTN_MISC; bit++) {
+        if (!test_bit(key_bits, bit)) {
+            continue;
+        }
+
         udev_list_entry_add(&udev_device->properties, "ID_INPUT_KEY", "1", 0);
 
         if (test_bit(key_bits, KEY_ENTER)) {
             udev_list_entry_add(&udev_device->properties, "ID_INPUT_KEYBOARD", "1", 0);
         }
+
+        return;
     }
 }
 
