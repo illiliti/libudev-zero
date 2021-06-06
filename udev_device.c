@@ -243,7 +243,6 @@ const char *udev_device_get_sysattr_value(struct udev_device *udev_device, const
     struct stat st;
     size_t len;
     FILE *file;
-    char *pos;
 
     if (!udev_device || !sysattr) {
         return NULL;
@@ -278,8 +277,9 @@ const char *udev_device_get_sysattr_value(struct udev_device *udev_device, const
     fclose(file);
     data[len] = '\0';
 
-    if ((pos = strrchr(data, '\n'))) {
-        *pos = '\0';
+    // TODO strrchr?
+    while (len-- > 0 && data[len] == '\n') {
+        data[len] = '\0';
     }
 
     list_entry = udev_list_entry_add(&udev_device->sysattrs, sysattr, data, 0);
