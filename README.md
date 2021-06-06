@@ -64,11 +64,6 @@ echo "/full/path/to/helper <dir>" > /proc/sys/kernel/hotplug # change <dir> to y
 ---
 Then you can run an application that uses hotplugging like `xorg-server` to see if it's working by unplugging and plugging something back. If you face any problems while trying out any of these methods, please create an issue.
 
-## TODO
-* [x] speed up performance
-* [x] extend device support
-* [x] implement hotplugging support
-
 ## Donate
 You can send a donation to `BTC: 1BwrcsgtWZeLVvNeEQSg4A28a3yrGN3FpK` if you like this project.
 
