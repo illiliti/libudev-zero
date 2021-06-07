@@ -15,13 +15,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-struct udev_list_entry {
-    struct udev_list_entry *next;
-    char *value;
-    char *name;
-};
+struct udev_list_table *udev_list_table_init(size_t cap, int (*cmp)(const char *, const char *));
+void udev_list_table_deinit(struct udev_list_table *list_table);
 
-void udev_list_entry_init(struct udev_list_entry *list_entry);
-void udev_list_entry_free(struct udev_list_entry *list_entry);
-void udev_list_entry_free_all(struct udev_list_entry *list_entry);
-struct udev_list_entry *udev_list_entry_add(struct udev_list_entry *list_entry, const char *name, const char *value, int uniq);
+struct udev_list_entry *udev_list_entry_add(struct udev_list_table *list_table, const char *name, const char *value);
+struct udev_list_entry *udev_list_table_get_head(struct udev_list_table *list_table);

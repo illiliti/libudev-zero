@@ -36,8 +36,8 @@
 #endif
 
 struct udev_monitor {
-    struct udev_list_entry subsystem_match;
-    struct udev_list_entry devtype_match;
+    struct udev_list_table *subsystem_match;
+    struct udev_list_table *devtype_match;
     struct udev *udev;
     pthread_t thread;
     const char *dir;
@@ -52,26 +52,19 @@ static int filter_devtype(struct udev_monitor *udev_monitor, struct udev_device 
     struct udev_list_entry *list_entry;
     const char *devtype;
 
-    devtype = udev_device_get_devtype(udev_device);
-    list_entry = udev_list_entry_get_next(&udev_monitor->devtype_match);
+    list_entry = udev_list_table_get_head(udev_monitor->devtype_match);
 
     if (!list_entry) {
         return 1;
     }
 
+    devtype = udev_device_get_devtype(udev_device);
+
     if (!devtype) {
         return 0;
     }
 
-    while (list_entry) {
-        if (strcmp(devtype, udev_list_entry_get_name(list_entry)) == 0) {
-            return 1;
-        }
-
-        list_entry = udev_list_entry_get_next(list_entry);
-    }
-
-    return 0;
+    return !!udev_list_entry_get_by_name(list_entry, devtype);
 }
 
 static int filter_subsystem(struct udev_monitor *udev_monitor, struct udev_device *udev_device)
@@ -79,26 +72,19 @@ static int filter_subsystem(struct udev_monitor *udev_monitor, struct udev_devic
     struct udev_list_entry *list_entry;
     const char *subsystem;
 
-    subsystem = udev_device_get_subsystem(udev_device);
-    list_entry = udev_list_entry_get_next(&udev_monitor->subsystem_match);
+    list_entry = udev_list_table_get_head(udev_monitor->subsystem_match);
 
     if (!list_entry) {
         return 1;
     }
 
+    subsystem = udev_device_get_subsystem(udev_device);
+
     if (!subsystem) {
         return 0;
     }
 
-    while (list_entry) {
-        if (strcmp(subsystem, udev_list_entry_get_name(list_entry)) == 0) {
-            return 1;
-        }
-
-        list_entry = udev_list_entry_get_next(list_entry);
-    }
-
-    return 0;
+    return !!udev_list_entry_get_by_name(list_entry, subsystem);
 }
 
 struct udev_device *udev_monitor_receive_device(struct udev_monitor *udev_monitor)
@@ -106,6 +92,7 @@ struct udev_device *udev_monitor_receive_device(struct udev_monitor *udev_monito
     char file[PATH_MAX], data[4096];
     struct udev_device *udev_device;
 
+    // TODO use recvmsg to detect truncated msgs?
     if (recv(udev_monitor->sfd[0], data, sizeof(data), 0) == -1) {
         return NULL;
     }
@@ -226,13 +213,15 @@ int udev_monitor_filter_add_match_subsystem_devtype(struct udev_monitor *udev_mo
         return -1;
     }
 
-    udev_list_entry_add(&udev_monitor->subsystem_match, subsystem, NULL, 0);
-
-    if (devtype) {
-        udev_list_entry_add(&udev_monitor->devtype_match, devtype, NULL, 0);
+    if (!udev_list_entry_add(udev_monitor->subsystem_match, subsystem, NULL)) {
+        return -1;
     }
 
-    return 0;
+    if (!devtype) {
+        return 0;
+    }
+
+    return !!udev_list_entry_add(udev_monitor->devtype_match, devtype, NULL) - 1;
 }
 
 /* XXX NOT IMPLEMENTED */ int udev_monitor_filter_add_match_tag(struct udev_monitor *udev_monitor, const char *tag)
@@ -254,10 +243,22 @@ struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char
         return NULL;
     }
 
+    udev_monitor->subsystem_match = udev_list_table_init(10, strcmp);
+
+    if (!udev_monitor->subsystem_match) {
+        goto free_monitor;
+    }
+
+    udev_monitor->devtype_match = udev_list_table_init(10, strcmp);
+
+    if (!udev_monitor->subsystem_match) {
+        goto deinit_subsystem_match;
+    }
+
     udev_monitor->signal_fd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
 
     if (udev_monitor->signal_fd == -1) {
-        goto free_monitor;
+        goto deinit_devtype_match;
     }
 
     udev_monitor->ifd = inotify_init1(IN_CLOEXEC | IN_NONBLOCK);
@@ -305,6 +306,12 @@ close_ifd:
 close_signal_fd:
     close(udev_monitor->signal_fd);
 
+deinit_subsystem_match:
+    udev_list_table_deinit(udev_monitor->subsystem_match);
+
+deinit_devtype_match:
+    udev_list_table_deinit(udev_monitor->devtype_match);
+
 free_monitor:
     free(udev_monitor);
     return NULL;
@@ -337,8 +344,8 @@ struct udev_monitor *udev_monitor_unref(struct udev_monitor *udev_monitor)
     // waiting for event thread to end before freeing udev_monitor
     pthread_join(udev_monitor->thread, NULL);
 
-    udev_list_entry_free_all(&udev_monitor->devtype_match);
-    udev_list_entry_free_all(&udev_monitor->subsystem_match);
+    udev_list_table_deinit(udev_monitor->subsystem_match);
+    udev_list_table_deinit(udev_monitor->devtype_match);
 
     for (i = 0; i < 2; i++) {
         close(udev_monitor->sfd[i]);
