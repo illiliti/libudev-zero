@@ -393,7 +393,7 @@ struct udev_enumerate *udev_enumerate_new(struct udev *udev)
         goto deinit_sysattr_match;
     }
 
-    udev_enumerate->devices = udev_list_table_init(100, strmatch);
+    udev_enumerate->devices = udev_list_table_init(100, strcmp);
 
     if (!udev_enumerate->devices) {
         goto deinit_sysname_match;
