@@ -45,7 +45,7 @@ libudev.pc: libudev.pc.in
 		-e 's|@VERSION@|243|g' \
 		libudev.pc.in > libudev.pc
 
-install: libudev.so libudev.a libudev.pc
+install: libudev.so.1 libudev.a libudev.pc
 	mkdir -p         ${DESTDIR}${INCLUDEDIR} ${DESTDIR}${LIBDIR} ${DESTDIR}${PKGCONFIGDIR}
 	cp -f udev.h  	 ${DESTDIR}${INCLUDEDIR}/libudev.h
 	cp -f libudev.a  ${DESTDIR}${LIBDIR}/libudev.a
