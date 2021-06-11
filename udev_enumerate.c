@@ -276,7 +276,7 @@ static int scan_devices(struct udev_enumerate *udev_enumerate, const char *path)
     struct udev_enumerate_thread *thread;
     pthread_mutex_t mutex;
     struct dirent **de;
-    int cnt, i;
+    int ret, cnt, i;
 
     cnt = scandir(path, &de, filter_dot, NULL);
 
@@ -284,15 +284,12 @@ static int scan_devices(struct udev_enumerate *udev_enumerate, const char *path)
         return 0;
     }
 
+    ret = 1;
     thread = calloc(cnt, sizeof(struct udev_enumerate_thread));
 
     if (!thread) {
-        for (i = 0; i < cnt; i++) {
-            free(de[i]);
-        }
-
-        free(de);
-        return 0;
+        ret = 0;
+        goto free_de;
     }
 
     pthread_mutex_init(&mutex, NULL);
@@ -304,7 +301,8 @@ static int scan_devices(struct udev_enumerate *udev_enumerate, const char *path)
         snprintf(thread[i].path, sizeof(thread[i].path), "%s/%s", path, de[i]->d_name);
 
         if (pthread_create(&thread[i].thread, NULL, add_device, &thread[i]) != 0) {
-            return 0;
+            ret = 0;
+            break;
         }
     }
 
@@ -312,14 +310,16 @@ static int scan_devices(struct udev_enumerate *udev_enumerate, const char *path)
         pthread_join(thread[i].thread, NULL);
     }
 
+    free(thread);
+    pthread_mutex_destroy(&mutex);
+
+free_de:
     for (i = 0; i < cnt; i++) {
         free(de[i]);
     }
 
     free(de);
-    free(thread);
-    pthread_mutex_destroy(&mutex);
-    return 1;
+    return ret;
 }
 
 int udev_enumerate_scan_devices(struct udev_enumerate *udev_enumerate)
