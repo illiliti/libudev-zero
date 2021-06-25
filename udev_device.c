@@ -389,7 +389,7 @@ static void make_bit(unsigned long *arr, int cnt, const char *str)
 
 static int test_bit(unsigned long *arr, unsigned long bit)
 {
-    return arr[BIT_WORD(bit)] & BIT_MASK(bit);
+    return !!(arr[BIT_WORD(bit)] & BIT_MASK(bit));
 }
 
 static void set_properties_from_evdev(struct udev_device *udev_device)
