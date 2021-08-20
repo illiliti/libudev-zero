@@ -1,13 +1,10 @@
 #!/bin/sh -f
 #
-# this helper required for CONFIG_UEVENT_HELPER aka /proc/sys/kernel/hotplug
-# for mdev you can use simple one-liner, refer to mdev.conf for more info
+# NOTE: you don't need this if you have mdev/mdevd, refer to mdev.conf
+# NOTE: you need this if you want to use bare-bones CONFIG_UEVENT_HELPER
 #
 # usage:
 # echo /full/path/to/helper.sh > /proc/sys/kernel/hotplug
 # echo "/full/path/to/helper.sh UDEV_MONITOR_DIR" > /proc/sys/kernel/hotplug
-#
 
-# NOTE: writing variables to file (e.g PWD or PATH)
-# that are not related to uevent properties is harmless
 exec env > "${1:-/tmp/.libudev-zero}/uevent.$$"

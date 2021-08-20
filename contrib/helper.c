@@ -15,8 +15,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  *
- * this helper pretty similar to helper.sh, but it
- * doesn't write unrelated variables to file (e.g PWD or PATH)
+ * NOTE: you don't need this if you have mdev/mdevd, refer to mdev.conf
+ * NOTE: you need this if you want to use bare-bones CONFIG_UEVENT_HELPER
  *
  * build:
  * cc helper.c -o helper
