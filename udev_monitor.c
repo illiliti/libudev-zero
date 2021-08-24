@@ -248,7 +248,7 @@ struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char
         return NULL;
     }
 
-    udev_monitor = calloc(1, sizeof(struct udev_monitor));
+    udev_monitor = calloc(1, sizeof(*udev_monitor));
 
     if (!udev_monitor) {
         return NULL;

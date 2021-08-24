@@ -26,8 +26,6 @@
 #include "udev.h"
 #include "udev_list.h"
 
-// sizeof(unsigned long) == 4 * 8 == 32 on 32-bit systems.
-// sizeof(unsigned long) == 8 * 8 == 64 on 64-bit systems.
 #ifndef LONG_BIT
 #define LONG_BIT (sizeof(unsigned long) * 8)
 #endif
@@ -547,7 +545,7 @@ struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *
         return NULL;
     }
 
-    udev_device = calloc(1, sizeof(struct udev_device));
+    udev_device = calloc(1, sizeof(*udev_device));
 
     if (!udev_device) {
         return NULL;
@@ -650,7 +648,7 @@ struct udev_device *udev_device_new_from_file(struct udev *udev, const char *pat
         return NULL;
     }
 
-    udev_device = calloc(1, sizeof(struct udev_device));
+    udev_device = calloc(1, sizeof(*udev_device));
 
     if (!udev_device) {
         fclose(file);

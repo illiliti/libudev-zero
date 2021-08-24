@@ -27,7 +27,7 @@ struct udev *udev_new(void)
 {
     struct udev *udev;
 
-    udev = calloc(1, sizeof(struct udev));
+    udev = calloc(1, sizeof(*udev));
 
     if (!udev) {
         return NULL;

@@ -275,8 +275,8 @@ static int scan_devices(struct udev_enumerate *udev_enumerate, const char *path)
 {
     struct udev_enumerate_thread *thread;
     pthread_mutex_t mutex;
+    int i, cnt, ret = 1;
     struct dirent **de;
-    int ret, cnt, i;
 
     cnt = scandir(path, &de, filter_dot, NULL);
 
@@ -284,8 +284,7 @@ static int scan_devices(struct udev_enumerate *udev_enumerate, const char *path)
         return 0;
     }
 
-    ret = 1;
-    thread = calloc(cnt, sizeof(struct udev_enumerate_thread));
+    thread = calloc(cnt, sizeof(*thread));
 
     if (!thread) {
         ret = 0;
@@ -368,7 +367,7 @@ struct udev_enumerate *udev_enumerate_new(struct udev *udev)
         return NULL;
     }
 
-    udev_enumerate = calloc(1, sizeof(struct udev_enumerate));
+    udev_enumerate = calloc(1, sizeof(*udev_enumerate));
 
     if (!udev_enumerate) {
         return NULL;

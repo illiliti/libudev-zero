@@ -69,7 +69,7 @@ struct udev_list_entry *udev_list_entry_add(struct udev_list_entry *list_entry, 
         }
     }
 
-    list_entry2 = calloc(1, sizeof(struct udev_list_entry));
+    list_entry2 = calloc(1, sizeof(*list_entry2));
 
     if (!list_entry2) {
         return NULL;
