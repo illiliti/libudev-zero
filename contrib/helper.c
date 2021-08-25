@@ -15,50 +15,27 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  *
- * NOTE: you don't need this if you have mdev/mdevd, refer to mdev.conf
- * NOTE: you need this if you want to use bare-bones CONFIG_UEVENT_HELPER
- *
- * build:
- * cc helper.c -o helper
- *
- * usage:
- * echo /full/path/to/helper > /proc/sys/kernel/hotplug
- * echo "/full/path/to/helper UDEV_MONITOR_DIR" > /proc/sys/kernel/hotplug
+ * Construct uevent message from environment and send it to 0x4 netlink group.
  */
 
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <sys/stat.h>
+#include <sys/socket.h>
+#include <linux/netlink.h>
 
 int main(int argc, char **argv)
 {
+    struct sockaddr_nl sa = {0};
+    struct msghdr hdr = {0};
+    struct iovec iov = {0};
     extern char **environ;
-    char path[PATH_MAX];
-    char *dir;
-    int fd, i;
+    char buf[8192];
+    size_t len;
+    int i, fd;
 
-    switch (argc) {
-    case 1:
-        dir = "/tmp/.libudev-zero";
-        break;
-    case 2:
-        dir = argv[1];
-        break;
-    default:
-        fprintf(stderr, "usage: %s [dir]\n", argv[0]);
-        return 2;
-    }
-
-    snprintf(path, sizeof(path), "%s/uevent.XXXXXX", dir);
-    fd = mkstemp(path);
-
-    if (fd == -1) {
-        perror("mkstemp");
-        return 1;
-    }
+    iov.iov_base = buf;
+    iov.iov_len = 0;
 
     for (i = 0; environ[i]; i++) {
         if (strncmp(environ[i], "PATH=", 5) == 0 ||
@@ -66,16 +43,44 @@ int main(int argc, char **argv)
             continue;
         }
 
-        if (write(fd, environ[i], strlen(environ[i])) == -1 ||
-            write(fd, "\n", 1) == -1) {
-            perror("write");
-            close(fd);
-            unlink(path);
+        len = strlen(environ[i]) + 1;
+
+        if (iov.iov_len + len > sizeof(buf)) {
+            fprintf(stderr, "%s: uevent exceeds buffer size", argv[0]);
             return 1;
         }
+
+        memcpy(buf + iov.iov_len, environ[i], len);
+        iov.iov_len += len;
     }
 
-    fchmod(fd, 0444);
+    sa.nl_family = AF_NETLINK;
+    sa.nl_groups = 0x4; // XXX
+
+    hdr.msg_name = &sa;
+    hdr.msg_namelen = sizeof(sa);
+    hdr.msg_iov = &iov;
+    hdr.msg_iovlen = 1;
+
+    fd = socket(AF_NETLINK, SOCK_DGRAM, NETLINK_KOBJECT_UEVENT);
+
+    if (fd == -1) {
+        perror("socket");
+        return 1;
+    }
+
+    if (bind(fd, (struct sockaddr *)&sa, sizeof(sa)) == -1) {
+        perror("bind");
+        close(fd);
+        return 1;
+    }
+
+    if (sendmsg(fd, &hdr, 0) == -1) {
+        perror("sendmsg");
+        close(fd);
+        return 1;
+    }
+
     close(fd);
     return 0;
 }

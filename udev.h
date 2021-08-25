@@ -129,7 +129,7 @@ struct udev_hwdb *udev_hwdb_unref(struct udev_hwdb *hwdb);
 struct udev_list_entry *udev_hwdb_get_properties_list_entry(struct udev_hwdb *hwdb, const char *modalias, unsigned int flags);
 
 // this is "libudev-zero" extension. do not use if portability is concern
-struct udev_device *udev_device_new_from_file(struct udev *udev, const char *path);
+struct udev_device *udev_device_new_from_uevent(struct udev *udev, char *buf, size_t len);
 
 #ifdef __cplusplus
 }
