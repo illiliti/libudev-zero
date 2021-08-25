@@ -44,6 +44,10 @@
 #define INPUT_PROP_ACCELEROMETER 0x06
 #endif
 
+#ifndef INPUT_PROP_CNT
+#define INPUT_PROP_CNT 0x20
+#endif
+
 struct udev_device {
     struct udev_list_entry properties;
     struct udev_list_entry sysattrs;
