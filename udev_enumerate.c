@@ -242,7 +242,7 @@ static int filter_sysattr(struct udev_enumerate *udev_enumerate, struct udev_dev
 static void *add_device(void *ptr)
 {
     struct udev_enumerate_thread *thread = ptr;
-    struct udev_device *udev_device;
+    struct udev_device *udev_device, *parent;
 
     udev_device = udev_device_new_from_syspath(thread->udev_enumerate->udev, thread->path);
 
@@ -258,7 +258,14 @@ static void *add_device(void *ptr)
         return NULL;
     }
 
+    parent = udev_device_get_parent(udev_device);
+
     pthread_mutex_lock(thread->mutex);
+
+    if (parent) {
+        udev_list_entry_add(&thread->udev_enumerate->devices, udev_device_get_syspath(parent), NULL, 0);
+    }
+
     udev_list_entry_add(&thread->udev_enumerate->devices, udev_device_get_syspath(udev_device), NULL, 0);
     pthread_mutex_unlock(thread->mutex);
 
