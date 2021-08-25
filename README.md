@@ -1,6 +1,6 @@
 # libudev-zero
 
-Drop-in replacement for `libudev` that intended to work with any device manager
+Drop-in replacement for `libudev` intended to work with any device manager
 
 ## Why?
 
@@ -11,15 +11,11 @@ to rewrite[0] this crappy library because `libinput` hard-depends on `udev`.
 Without `libinput` you can't use `wayland` and many other cool stuff.
 
 Michael Forney (author of `cproc`, `samurai`, Oasis Linux, ...) decided to
-fork[1] `libinput` and remove the hard dependency on `udev`. Is this a
-solution? Yes. Is this a complete solution? No. This fork has a lot of
-disadvantages like requiring patching applications to use `libinput_netlink`
+fork[1] `libinput` and remove the hard dependency on `udev`. However, this
+fork has a drawback that requires patching applications to use `libinput_netlink`
 instead of the `libinput_udev` API in order to use the automatic detection of
-input devices and hotplugging. Static configuration is also required for
-anything other than input devices (e.g drm devices). Moreover hotplugging is
-vulnerable to race conditions when `libinput` handles the `uevent` faster than
-the device manager which can lead to file permission issues. `libudev-zero`
-prevents these race conditions by design.
+input devices and hotplugging. Static configuration is also required for anything
+other than input devices (e.g drm devices).
 
 Thankfully `udev` has stable API and hopefully no changes will be made to it
 the future. On this basis I decided to create this clean-room implementation
@@ -45,7 +41,6 @@ of `libudev` which can be used with any or without a device manager.
 * C99 compiler (build time)
 * POSIX make (build time)
 * POSIX & XSI libc
-* inotify & eventfd
 * Linux >= 2.6.39
 
 ## Installation
@@ -60,18 +55,21 @@ make PREFIX=/usr install
 Note that hotplugging support is fully optional. You can skip
 this step if you don't have a need for the hotplugging capability.
 
-In order to use hotplugging, you need to configure device manager to send
-`uevent` messages to `UDEV_MONITOR_DIR`. `UDEV_MONITOR_DIR` is arbitrary
-shared directory used by `libudev-zero` to receive `uevent` messages. By
-default, `UDEV_MONITOR_DIR` points to `/tmp/.libudev-zero`. You can change
-that directory at compile time by passing `-DUDEV_MONITOR_DIR=<dir>` to
-`CFLAGS` or at runtime by setting `UDEV_MONITOR_DIR` environment variable.
+If you're using mdev-like device manager, refer to [mdev.conf](contrib/mdev.conf)
+for config example.
 
-Keep in mind that already processed `uevent` messages wouldn't be automatically
-purged. You can set `UDEV_MONITOR_DIR` to directory on tmpfs to purge them on
-reboot/shutdown.
+If you're using other device manager, you need to configure it to rebroadcast
+kernel uevents. You can do this by either patching(see below) device manager
+or simply executing [helper.c](contrib/helper.c) for each uevent.
 
-Refer to [contrib](contrib) for usage examples and configs.
+If you're developing your own device manager, you need to rebroadcast kernel
+uevents to `0x4` netlink group of `NETLINK_KOBJECT_UEVENT`. This is required
+because libudev-zero can't simply listen to kernel uevents due to potential
+race conditions. Refer(but don't copy blindly) to [helper.c](contrib/helper.c)
+for example how it could be implemented in C.
+
+Don't hesitate to ask me everything you don't understand. I'm usually hanging
+around in #kisslinux at libera.chat, but you can also email me or open an issue here.
 
 ## Donate
 

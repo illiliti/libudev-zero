@@ -632,34 +632,19 @@ struct udev_device *udev_device_new_from_subsystem_sysname(struct udev *udev, co
     return NULL;
 }
 
-struct udev_device *udev_device_new_from_file(struct udev *udev, const char *path)
+struct udev_device *udev_device_new_from_uevent(struct udev *udev, char *buf, size_t len)
 {
-    char line[LINE_MAX], syspath[PATH_MAX], devnode[PATH_MAX];
+    char syspath[PATH_MAX], devnode[PATH_MAX];
     struct udev_device *udev_device;
-    struct stat st;
-    char *sysname;
-    FILE *file;
-    int i, cnt;
-    char *pos;
-
-    if (stat(path, &st) != 0 || st.st_size > 8192) {
-        return NULL;
-    }
-
-    file = fopen(path, "r");
-
-    if (!file) {
-        return NULL;
-    }
+    const char *sysname;
+    char *end, *pos;
+    int i, cnt = 0;
 
     udev_device = calloc(1, sizeof(*udev_device));
 
     if (!udev_device) {
-        fclose(file);
         return NULL;
     }
-
-    cnt = 0;
 
     udev_device->udev = udev;
     udev_device->refcount = 1;
@@ -668,13 +653,11 @@ struct udev_device *udev_device_new_from_file(struct udev *udev, const char *pat
     udev_list_entry_init(&udev_device->properties);
     udev_list_entry_init(&udev_device->sysattrs);
 
-    while (fgets(line, sizeof(line), file)) {
-        line[strlen(line) - 1] = '\0';
-
-        if (strncmp(line, "DEVPATH=", 8) == 0) {
-            snprintf(syspath, sizeof(syspath), "/sys%s", line + 8);
+    for (end = buf + len; buf < end; buf += strlen(buf) + 1) {
+       if (strncmp(buf, "DEVPATH=", 8) == 0) {
+            snprintf(syspath, sizeof(syspath), "/sys%s", buf + 8);
             udev_list_entry_add(&udev_device->properties, "SYSPATH", syspath, 0);
-            udev_list_entry_add(&udev_device->properties, "DEVPATH", line + 8, 0);
+            udev_list_entry_add(&udev_device->properties, "DEVPATH", buf + 8, 0);
 
             sysname = strrchr(syspath, '/') + 1;
             udev_list_entry_add(&udev_device->properties, "SYSNAME", sysname, 0);
@@ -688,35 +671,30 @@ struct udev_device *udev_device_new_from_file(struct udev *udev, const char *pat
 
             cnt++;
         }
-        else if (strncmp(line, "DEVNAME=", 8) == 0) {
-            snprintf(devnode, sizeof(devnode), "/dev/%s", line + 8);
+        else if (strncmp(buf, "DEVNAME=", 8) == 0) {
+            snprintf(devnode, sizeof(devnode), "/dev/%s", buf + 8);
             udev_list_entry_add(&udev_device->properties, "DEVNAME", devnode, 0);
         }
         else {
-            pos = strchr(line, '=');
+            pos = strchr(buf, '=');
 
-            // file is malformed, abort here.
             if (!pos) {
-                cnt = 0;
-                break;
+                continue;
             }
 
             *pos = '\0';
 
-            if (strncmp(line, "SUBSYSTEM", 9) == 0 ||
-                strncmp(line, "ACTION", 6) == 0 ||
-                strncmp(line, "SEQNUM", 6) == 0) {
+            if (strcmp(buf, "SUBSYSTEM") == 0 ||
+                strcmp(buf, "ACTION") == 0 ||
+                strcmp(buf, "SEQNUM") == 0) {
                 cnt++;
             }
 
-            udev_list_entry_add(&udev_device->properties, line, pos + 1, 0);
+            udev_list_entry_add(&udev_device->properties, buf, pos + 1, 0);
+            *pos = '=';
         }
     }
 
-    fclose(file);
-
-    // https://freedesktop.org/software/systemd/man/udev_device_new_from_environment.html
-    // > The keys DEVPATH, SUBSYSTEM, ACTION, and SEQNUM are mandatory.
     if (cnt != 4) {
         udev_device_unref(udev_device);
         return NULL;

@@ -15,36 +15,26 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <limits.h>
-#include <pthread.h>
-#include <sys/stat.h>
 #include <sys/socket.h>
-#include <sys/eventfd.h>
-#include <sys/inotify.h>
+#include <linux/netlink.h>
 
 #include "udev.h"
 #include "udev_list.h"
 
-#ifndef UDEV_MONITOR_DIR
-#define UDEV_MONITOR_DIR "/tmp/.libudev-zero"
+#ifndef UDEV_MONITOR_NLGRP
+#define UDEV_MONITOR_NLGRP 0x4
 #endif
 
 struct udev_monitor {
     struct udev_list_entry subsystem_match;
     struct udev_list_entry devtype_match;
     struct udev *udev;
-    pthread_t thread;
-    const char *dir;
-    int signal_fd;
     int refcount;
-    int sfd[2];
-    int ifd;
+    int nlgrp;
+    int fd;
 };
 
 static int filter_devtype(struct udev_monitor *udev_monitor, struct udev_device *udev_device)
@@ -103,106 +93,75 @@ static int filter_subsystem(struct udev_monitor *udev_monitor, struct udev_devic
 
 struct udev_device *udev_monitor_receive_device(struct udev_monitor *udev_monitor)
 {
-    char file[PATH_MAX], data[4096];
     struct udev_device *udev_device;
-
-    if (recv(udev_monitor->sfd[0], data, sizeof(data), 0) == -1) {
-        return NULL;
-    }
-
-    // check truncation error to make gcc happy
-    if ((unsigned)snprintf(file, sizeof(file), "%s/%s", udev_monitor->dir, data) >= sizeof(file)) {
-        return NULL;
-    }
-
-    udev_device = udev_device_new_from_file(udev_monitor->udev, file);
-
-    if (!udev_device) {
-        return NULL;
-    }
-
-    if (!filter_subsystem(udev_monitor, udev_device) ||
-        !filter_devtype(udev_monitor, udev_device)) {
-        udev_device_unref(udev_device);
-        return NULL;
-    }
-
-    return udev_device;
-}
-
-static void *handle_event(void *ptr)
-{
-    struct udev_monitor *udev_monitor = ptr;
-    struct inotify_event *event;
-    struct pollfd poll_fds[2];
-    char data[4096];
+    struct sockaddr_nl sa = {0};
+    struct msghdr hdr = {0};
+    struct iovec iov = {0};
+    char buf[8192];
     ssize_t len;
-    int i;
 
-    poll_fds[0].fd = udev_monitor->ifd;
-    poll_fds[0].events = POLLIN;
+    iov.iov_base = buf;
+    iov.iov_len = sizeof(buf);
 
-    poll_fds[1].fd = udev_monitor->signal_fd;
-    poll_fds[1].events = POLLIN;
+    hdr.msg_name = &sa;
+    hdr.msg_namelen = sizeof(sa);
+    hdr.msg_iov = &iov;
+    hdr.msg_iovlen = 1;
 
     while (1) {
-        if (poll(poll_fds, 2, -1) == -1) {
-            if (errno == EINTR) {
-                continue;
-            }
+        len = recvmsg(udev_monitor->fd, &hdr, 0);
 
-            return NULL;
+        if (len <= 0) {
+            break;
         }
 
-        // exit on explicit signal
-        if (poll_fds[1].revents & POLLIN) {
-            return NULL;
+        if (hdr.msg_flags & MSG_TRUNC) {
+            continue;
         }
 
-        // exit on poll error
-        if (!(poll_fds[0].revents & POLLIN)) {
-            return NULL;
+        if (sa.nl_groups == 0x0 || (sa.nl_groups == 0x1 && sa.nl_pid)) {
+            continue;
         }
 
-        len = read(udev_monitor->ifd, data, sizeof(data));
+        udev_device = udev_device_new_from_uevent(udev_monitor->udev, buf, len);
 
-        if (len == -1) {
-            return NULL;
+        if (!udev_device) {
+            continue;
         }
 
-        for (i = 0; i < len; i += sizeof(struct inotify_event) + event->len) {
-            event = (struct inotify_event *)&data[i];
-
-            // TODO directory is removed
-            if (event->mask & IN_IGNORED) {
-                break;
-            }
-
-            if (event->mask & IN_ISDIR) {
-                continue;
-            }
-
-            send(udev_monitor->sfd[1], event->name, event->len, 0);
+        if (!filter_subsystem(udev_monitor, udev_device) ||
+            !filter_devtype(udev_monitor, udev_device)) {
+            udev_device_unref(udev_device);
+            continue;
         }
+
+        return udev_device;
     }
 
-    // unreachable
     return NULL;
 }
 
 int udev_monitor_enable_receiving(struct udev_monitor *udev_monitor)
 {
-    return udev_monitor ? (pthread_create(&udev_monitor->thread, NULL, handle_event, udev_monitor) == 0) - 1 : -1;
+    struct sockaddr_nl sa = {0};
+
+    if (!udev_monitor) {
+        return -1;
+    }
+
+    sa.nl_family = AF_NETLINK;
+    sa.nl_groups = udev_monitor->nlgrp;
+    return bind(udev_monitor->fd, (struct sockaddr *)&sa, sizeof(sa));
 }
 
-/* XXX NOT IMPLEMENTED */ int udev_monitor_set_receive_buffer_size(struct udev_monitor *udev_monitor, int size)
+int udev_monitor_set_receive_buffer_size(struct udev_monitor *udev_monitor, int size)
 {
-    return 0;
+    return udev_monitor ? setsockopt(udev_monitor->fd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size)) : -1;
 }
 
 int udev_monitor_get_fd(struct udev_monitor *udev_monitor)
 {
-    return udev_monitor ? udev_monitor->sfd[0] : -1;
+    return udev_monitor ? udev_monitor->fd : -1;
 }
 
 struct udev *udev_monitor_get_udev(struct udev_monitor *udev_monitor)
@@ -254,60 +213,27 @@ struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char
         return NULL;
     }
 
-    udev_monitor->signal_fd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
-
-    if (udev_monitor->signal_fd == -1) {
-        goto free_monitor;
+    if (strcmp(name, "udev") == 0) {
+        udev_monitor->nlgrp = UDEV_MONITOR_NLGRP;
+    }
+    else if (strcmp(name, "kernel") == 0) {
+        udev_monitor->nlgrp = 0x1;
+    }
+    else {
+        free(udev_monitor);
+        return NULL;
     }
 
-    udev_monitor->ifd = inotify_init1(IN_CLOEXEC | IN_NONBLOCK);
+    udev_monitor->fd = socket(AF_NETLINK, SOCK_DGRAM | SOCK_CLOEXEC | SOCK_NONBLOCK, NETLINK_KOBJECT_UEVENT);
 
-    if (udev_monitor->ifd == -1) {
-        goto close_signal_fd;
-    }
-
-    // TODO docs
-    udev_monitor->dir = getenv("UDEV_MONITOR_DIR");
-
-    if (!udev_monitor->dir || udev_monitor->dir[0] == '\0') {
-        udev_monitor->dir = UDEV_MONITOR_DIR;
-
-        if (access(udev_monitor->dir, F_OK) == -1) {
-            if (errno != ENOENT) {
-                goto close_ifd;
-            }
-
-            if (mkdir(udev_monitor->dir, 0) == -1) {
-                goto close_ifd;
-            }
-
-            if (chmod(udev_monitor->dir, 0777) == -1) {
-                goto close_ifd;
-            }
-        }
-    }
-
-    if (inotify_add_watch(udev_monitor->ifd, udev_monitor->dir, IN_CLOSE_WRITE | IN_EXCL_UNLINK | IN_ONLYDIR) == -1) {
-        goto close_ifd;
-    }
-
-    if (socketpair(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC | SOCK_NONBLOCK, 0, udev_monitor->sfd) == -1) {
-        goto close_ifd;
+    if (udev_monitor->fd == -1) {
+        free(udev_monitor);
+        return NULL;
     }
 
     udev_monitor->refcount = 1;
     udev_monitor->udev = udev;
     return udev_monitor;
-
-close_ifd:
-    close(udev_monitor->ifd);
-
-close_signal_fd:
-    close(udev_monitor->signal_fd);
-
-free_monitor:
-    free(udev_monitor);
-    return NULL;
 }
 
 struct udev_monitor *udev_monitor_ref(struct udev_monitor *udev_monitor)
@@ -322,8 +248,6 @@ struct udev_monitor *udev_monitor_ref(struct udev_monitor *udev_monitor)
 
 struct udev_monitor *udev_monitor_unref(struct udev_monitor *udev_monitor)
 {
-    int i;
-
     if (!udev_monitor) {
         return NULL;
     }
@@ -332,20 +256,10 @@ struct udev_monitor *udev_monitor_unref(struct udev_monitor *udev_monitor)
         return NULL;
     }
 
-    // Wake up the event thread
-    eventfd_write(udev_monitor->signal_fd, 1);
-    // waiting for event thread to end before freeing udev_monitor
-    pthread_join(udev_monitor->thread, NULL);
-
     udev_list_entry_free_all(&udev_monitor->devtype_match);
     udev_list_entry_free_all(&udev_monitor->subsystem_match);
 
-    for (i = 0; i < 2; i++) {
-        close(udev_monitor->sfd[i]);
-    }
-
-    close(udev_monitor->signal_fd);
-    close(udev_monitor->ifd);
+    close(udev_monitor->fd);
     free(udev_monitor);
     return NULL;
 }
