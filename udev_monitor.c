@@ -32,8 +32,8 @@ struct udev_monitor {
     struct udev_list_entry subsystem_match;
     struct udev_list_entry devtype_match;
     struct udev *udev;
+    unsigned nlgrp;
     int refcount;
-    int nlgrp;
     int fd;
 };
 
