@@ -69,12 +69,6 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    if (bind(fd, (struct sockaddr *)&sa, sizeof(sa)) == -1) {
-        perror("bind");
-        close(fd);
-        return 1;
-    }
-
     if (sendmsg(fd, &hdr, 0) == -1) {
         perror("sendmsg");
         close(fd);
