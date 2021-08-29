@@ -1,11 +1,11 @@
 /*
  * Copyright (c) 2020-2021 illiliti <illiliti@protonmail.com>
  * SPDX-License-Identifier: ISC
- * 
+ *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -15,13 +15,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <dirent.h>
+#include <fnmatch.h>
+#include <limits.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <dirent.h>
 #include <string.h>
-#include <limits.h>
-#include <fnmatch.h>
-#include <pthread.h>
 
 #include "udev.h"
 #include "udev_list.h"
@@ -330,7 +330,7 @@ free_de:
 
 int udev_enumerate_scan_devices(struct udev_enumerate *udev_enumerate)
 {
-    const char *path[] = { "/sys/dev/block", "/sys/dev/char", NULL };
+    const char *path[] = {"/sys/dev/block", "/sys/dev/char", NULL};
     int i;
 
     if (!udev_enumerate) {

@@ -1,11 +1,11 @@
 /*
  * Copyright (c) 2020-2021 illiliti <illiliti@protonmail.com>
  * SPDX-License-Identifier: ISC
- * 
+ *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -15,13 +15,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
 #include <limits.h>
-#include <sys/stat.h>
 #include <linux/input.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "udev.h"
 #include "udev_list.h"
@@ -613,7 +613,7 @@ struct udev_device *udev_device_new_from_devnum(struct udev *udev, char type, de
 
 struct udev_device *udev_device_new_from_subsystem_sysname(struct udev *udev, const char *subsystem, const char *sysname)
 {
-    const char *fmt[] = { "/sys/bus/%s/devices/%s", "/sys/class/%s/%s", NULL };
+    const char *fmt[] = {"/sys/bus/%s/devices/%s", "/sys/class/%s/%s", NULL};
     char path[PATH_MAX];
     int i;
 
@@ -654,7 +654,7 @@ struct udev_device *udev_device_new_from_uevent(struct udev *udev, char *buf, si
     udev_list_entry_init(&udev_device->sysattrs);
 
     for (end = buf + len; buf < end; buf += strlen(buf) + 1) {
-       if (strncmp(buf, "DEVPATH=", 8) == 0) {
+        if (strncmp(buf, "DEVPATH=", 8) == 0) {
             snprintf(syspath, sizeof(syspath), "/sys%s", buf + 8);
             udev_list_entry_add(&udev_device->properties, "SYSPATH", syspath, 0);
             udev_list_entry_add(&udev_device->properties, "DEVPATH", buf + 8, 0);

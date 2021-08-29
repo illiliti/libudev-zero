@@ -1,11 +1,11 @@
 /*
  * Copyright (c) 2020-2021 illiliti <illiliti@protonmail.com>
  * SPDX-License-Identifier: ISC
- * 
+ *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -62,8 +62,8 @@ struct udev *udev_unref(struct udev *udev)
 }
 
 void udev_set_log_fn(struct udev *udev, void (*log_fn)(struct udev *udev,
-            int priority, const char *file, int line, const char *fn,
-            const char *format, va_list args))
+                                                       int priority, const char *file, int line, const char *fn,
+                                                       const char *format, va_list args))
 {
 }
 
