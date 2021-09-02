@@ -71,6 +71,12 @@ for example how it could be implemented in C.
 Don't hesitate to ask me everything you don't understand. I'm usually hanging
 around in #kisslinux at libera.chat, but you can also email me or open an issue here.
 
+## Future directions
+
+1. Write a better cross-platform(*nix, maybe macos and windows) device enumeration library.
+2. Convince mainstream apps(libinput, wlroots, ...) to use new library instead of libudev.
+3. Declare libudev as obsolete library and archive this project.
+
 ## Donate
 
 You can send a donation to `BTC: 1BwrcsgtWZeLVvNeEQSg4A28a3yrGN3FpK`
