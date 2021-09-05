@@ -175,13 +175,11 @@ static int filter_property(struct udev_enumerate *udev_enumerate, struct udev_de
             property2 = udev_list_entry_get_name(list_entry2);
             value2 = udev_list_entry_get_value(list_entry2);
 
-            if (!value || !value2) {
-                continue;
-            }
-
-            if (fnmatch(property, property2, 0) == 0 &&
-                fnmatch(value, value2, 0) == 0) {
-                return 1;
+            if (value && value2) {
+                if (fnmatch(property, property2, 0) == 0 &&
+                    fnmatch(value, value2, 0) == 0) {
+                    return 1;
+                }
             }
 
             list_entry2 = udev_list_entry_get_next(list_entry2);
