@@ -24,17 +24,18 @@ of `libudev` which can be used with any or without a device manager.
 [0] https://github.com/FreeBSDDesktop/libudev-devd  
 [1] https://github.com/oasislinux/libinput
 
-## What Works
+## What doesn't work
 
-* [x] xorg-server
-* [ ] dosfstools - need to implement udev_enumerate_add_match_parent()
-* [x] libinput
-* [x] usbutils
-* [x] wlroots
-* [x] weston
-* [x] libusb
-* [x] kwin
-* [ ] ???
+* dosfstools - requires udev_enumerate_add_match_parent()
+* PulseAudio - highly depends on udev internal properties
+* udisks2 - highly depends on udev internal properties
+* android-tools - requires udev rules for non-root usage
+* NetworkManager - needs investigation
+* libgudev - needs investigation
+* PipeWare - depends on udev internal properties
+* ldm - depends on udev internal properties
+* lvm2 - uses deprecated `udev_queue` API
+* ???
 
 ## Dependencies
 
