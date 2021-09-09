@@ -22,6 +22,8 @@ and setting/remapping buttons? Udev smells like systemd by trying to implement
 all possible functionality in the single daemon/code base. Standalone UNIX-way
 programs much better suited for such purposes.
 
+## Pros/Cons
+
 Keep in mind that libudev-zero isn't ideal. Here is some pros/cons:
 
 ### Pros
