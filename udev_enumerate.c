@@ -80,7 +80,9 @@ int udev_enumerate_add_match_sysname(struct udev_enumerate *udev_enumerate, cons
     return 0;
 }
 
-/* XXX NOT IMPLEMENTED */ int udev_enumerate_add_match_parent(struct udev_enumerate *udev_enumerate, struct udev_device *parent)
+/* XXX NOT IMPLEMENTED */ int udev_enumerate_add_match_parent(
+    struct udev_enumerate *udev_enumerate,
+    struct udev_device *parent)
 {
     return 0;
 }
@@ -179,8 +181,7 @@ static int filter_property(struct udev_enumerate *udev_enumerate, struct udev_de
                 continue;
             }
 
-            if (fnmatch(property, property2, 0) == 0 &&
-                fnmatch(value, value2, 0) == 0) {
+            if (fnmatch(property, property2, 0) == 0 && fnmatch(value, value2, 0) == 0) {
                 return 1;
             }
 
@@ -251,8 +252,7 @@ static void *add_device(void *ptr)
     }
 
     if (!filter_subsystem(thread->udev_enumerate, udev_device) ||
-        !filter_sysname(thread->udev_enumerate, udev_device) ||
-        !filter_property(thread->udev_enumerate, udev_device) ||
+        !filter_sysname(thread->udev_enumerate, udev_device) || !filter_property(thread->udev_enumerate, udev_device) ||
         !filter_sysattr(thread->udev_enumerate, udev_device)) {
         udev_device_unref(udev_device);
         return NULL;

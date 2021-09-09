@@ -129,8 +129,7 @@ struct udev_device *udev_monitor_receive_device(struct udev_monitor *udev_monito
             continue;
         }
 
-        if (!filter_subsystem(udev_monitor, udev_device) ||
-            !filter_devtype(udev_monitor, udev_device)) {
+        if (!filter_subsystem(udev_monitor, udev_device) || !filter_devtype(udev_monitor, udev_device)) {
             udev_device_unref(udev_device);
             continue;
         }
@@ -179,7 +178,10 @@ struct udev *udev_monitor_get_udev(struct udev_monitor *udev_monitor)
     return 0;
 }
 
-int udev_monitor_filter_add_match_subsystem_devtype(struct udev_monitor *udev_monitor, const char *subsystem, const char *devtype)
+int udev_monitor_filter_add_match_subsystem_devtype(
+    struct udev_monitor *udev_monitor,
+    const char *subsystem,
+    const char *devtype)
 {
     if (!udev_monitor || !subsystem) {
         return -1;

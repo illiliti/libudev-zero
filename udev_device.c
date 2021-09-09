@@ -169,7 +169,10 @@ struct udev_device *udev_device_get_parent(struct udev_device *udev_device)
     return udev_device->parent;
 }
 
-struct udev_device *udev_device_get_parent_with_subsystem_devtype(struct udev_device *udev_device, const char *subsystem, const char *devtype)
+struct udev_device *udev_device_get_parent_with_subsystem_devtype(
+    struct udev_device *udev_device,
+    const char *subsystem,
+    const char *devtype)
 {
     const char *parent_subsystem, *parent_devtype;
     struct udev_device *parent;
@@ -447,14 +450,13 @@ static void set_properties_from_evdev(struct udev_device *udev_device)
     }
 
     if (test_bit(ev_bits, EV_REL)) {
-        if (test_bit(rel_bits, REL_Y) && test_bit(rel_bits, REL_X) &&
-            test_bit(key_bits, BTN_MOUSE)) {
+        if (test_bit(rel_bits, REL_Y) && test_bit(rel_bits, REL_X) && test_bit(key_bits, BTN_MOUSE)) {
             udev_list_entry_add(&udev_device->properties, "ID_INPUT_MOUSE", "1", 0);
         }
     }
     else if (test_bit(ev_bits, EV_ABS)) {
-        if (test_bit(key_bits, BTN_SELECT) || test_bit(key_bits, BTN_TR) ||
-            test_bit(key_bits, BTN_START) || test_bit(key_bits, BTN_TL)) {
+        if (test_bit(key_bits, BTN_SELECT) || test_bit(key_bits, BTN_TR) || test_bit(key_bits, BTN_START) ||
+            test_bit(key_bits, BTN_TL)) {
             if (test_bit(key_bits, BTN_TOUCH)) {
                 udev_list_entry_add(&udev_device->properties, "ID_INPUT_TOUCHSCREEN", "1", 0);
             }
@@ -611,7 +613,10 @@ struct udev_device *udev_device_new_from_devnum(struct udev *udev, char type, de
     return udev_device_new_from_syspath(udev, path);
 }
 
-struct udev_device *udev_device_new_from_subsystem_sysname(struct udev *udev, const char *subsystem, const char *sysname)
+struct udev_device *udev_device_new_from_subsystem_sysname(
+    struct udev *udev,
+    const char *subsystem,
+    const char *sysname)
 {
     const char *fmt[] = {"/sys/bus/%s/devices/%s", "/sys/class/%s/%s", NULL};
     char path[PATH_MAX];
@@ -684,9 +689,7 @@ struct udev_device *udev_device_new_from_uevent(struct udev *udev, char *buf, si
 
             *pos = '\0';
 
-            if (strcmp(buf, "SUBSYSTEM") == 0 ||
-                strcmp(buf, "ACTION") == 0 ||
-                strcmp(buf, "SEQNUM") == 0) {
+            if (strcmp(buf, "SUBSYSTEM") == 0 || strcmp(buf, "ACTION") == 0 || strcmp(buf, "SEQNUM") == 0) {
                 cnt++;
             }
 
