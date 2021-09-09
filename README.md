@@ -41,7 +41,7 @@ Keep in mind that libudev-zero isn't ideal. Here is some pros/cons:
 ## What doesn't work
 
 * dosfstools - requires udev_enumerate_add_match_parent()
-* PulseAudio - highly depends on udev internal properties
+* PulseAudio - highly depends on udev internal properties. [workaround](https://gist.github.com/capezotte/03ee5548218e819b06459819bb120b4b#pulseaudio)
 * udisks2 - highly depends on udev internal properties
 * android-tools - requires udev rules for non-root usage
 * NetworkManager - needs investigation
@@ -49,6 +49,7 @@ Keep in mind that libudev-zero isn't ideal. Here is some pros/cons:
 * PipeWare - depends on udev internal properties
 * ldm - depends on udev internal properties
 * lvm2 - uses deprecated `udev_queue` API
+* cups - needs investigation
 * ???
 
 ## Dependencies
