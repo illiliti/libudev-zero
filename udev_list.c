@@ -78,6 +78,7 @@ struct udev_list_entry *udev_list_entry_add(struct udev_list_entry *list_entry, 
     list_entry2->name = strdup(name);
 
     if (!list_entry2->name) {
+        udev_list_entry_free(list_entry2);
         return NULL;
     }
 
@@ -85,6 +86,7 @@ struct udev_list_entry *udev_list_entry_add(struct udev_list_entry *list_entry, 
         list_entry2->value = strdup(value);
 
         if (!list_entry2->value) {
+            udev_list_entry_free(list_entry2);
             return NULL;
         }
     }
