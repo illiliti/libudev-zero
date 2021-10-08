@@ -546,12 +546,14 @@ struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *
     }
 
     if (!realpath(syspath, path)) {
+        free(subsystem);
         return NULL;
     }
 
     udev_device = calloc(1, sizeof(*udev_device));
 
     if (!udev_device) {
+        free(subsystem);
         return NULL;
     }
 
