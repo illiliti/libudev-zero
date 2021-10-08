@@ -530,18 +530,18 @@ static void set_properties_from_props(struct udev_device *udev_device)
 
 struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *syspath)
 {
-    char path[PATH_MAX], file[PATH_MAX];
     char *subsystem, *driver, *sysname;
     struct udev_device *udev_device;
+    char path[PATH_MAX];
     int i;
 
     if (!udev || !syspath) {
         return NULL;
     }
 
-    snprintf(file, sizeof(file), "%s/uevent", syspath);
+    subsystem = read_symlink(syspath, "subsystem");
 
-    if (access(file, R_OK) == -1) {
+    if (!subsystem) {
         return NULL;
     }
 
@@ -567,7 +567,6 @@ struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *
 
     sysname = strrchr(path, '/') + 1;
     driver = read_symlink(path, "driver");
-    subsystem = read_symlink(path, "subsystem");
 
     udev_list_entry_add(&udev_device->properties, "SUBSYSTEM", subsystem, 0);
     udev_list_entry_add(&udev_device->properties, "SYSNAME", sysname, 0);
