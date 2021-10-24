@@ -46,7 +46,7 @@ Keep in mind that libudev-zero isn't ideal. Here is some pros/cons:
 * android-tools - requires udev rules for non-root usage
 * NetworkManager - needs investigation
 * libgudev - needs investigation
-* PipeWare - depends on udev internal properties
+* PipeWire - depends on udev internal properties
 * ldm - depends on udev internal properties
 * lvm2 - uses deprecated `udev_queue` API
 * cups - needs investigation
