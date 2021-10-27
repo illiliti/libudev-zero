@@ -174,5 +174,6 @@ WhitespaceSensitiveMacros:
   - BOOST_PP_STRINGIZE
   - NS_SWIFT_NAME
   - CF_SWIFT_NAME
+Cpp11BracedListStyle: false
 ...
 
