@@ -330,7 +330,7 @@ free_de:
 
 int udev_enumerate_scan_devices(struct udev_enumerate *udev_enumerate)
 {
-    const char *path[] = {"/sys/dev/block", "/sys/dev/char", NULL};
+    const char *path[] = { "/sys/dev/block", "/sys/dev/char", NULL };
     int i;
 
     if (!udev_enumerate) {

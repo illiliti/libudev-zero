@@ -400,11 +400,11 @@ static int test_bit(unsigned long *arr, unsigned long bit)
 static void set_properties_from_evdev(struct udev_device *udev_device)
 {
     // https://kernel.org/doc/html/latest/driver-api/input.html#c.input_dev
-    unsigned long prop_bits[BITS_TO_LONGS(INPUT_PROP_CNT)] = {0};
-    unsigned long abs_bits[BITS_TO_LONGS(ABS_CNT)] = {0};
-    unsigned long rel_bits[BITS_TO_LONGS(REL_CNT)] = {0};
-    unsigned long key_bits[BITS_TO_LONGS(KEY_CNT)] = {0};
-    unsigned long ev_bits[BITS_TO_LONGS(EV_CNT)] = {0};
+    unsigned long prop_bits[BITS_TO_LONGS(INPUT_PROP_CNT)] = { 0 };
+    unsigned long abs_bits[BITS_TO_LONGS(ABS_CNT)] = { 0 };
+    unsigned long rel_bits[BITS_TO_LONGS(REL_CNT)] = { 0 };
+    unsigned long key_bits[BITS_TO_LONGS(KEY_CNT)] = { 0 };
+    unsigned long ev_bits[BITS_TO_LONGS(EV_CNT)] = { 0 };
     struct udev_device *parent;
     const char *subsystem;
     unsigned long bit;
@@ -618,7 +618,7 @@ struct udev_device *udev_device_new_from_subsystem_sysname(
     const char *subsystem,
     const char *sysname)
 {
-    const char *fmt[] = {"/sys/bus/%s/devices/%s", "/sys/class/%s/%s", NULL};
+    const char *fmt[] = { "/sys/bus/%s/devices/%s", "/sys/class/%s/%s", NULL };
     char path[PATH_MAX];
     int i;
 

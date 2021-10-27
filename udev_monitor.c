@@ -94,9 +94,9 @@ static int filter_subsystem(struct udev_monitor *udev_monitor, struct udev_devic
 struct udev_device *udev_monitor_receive_device(struct udev_monitor *udev_monitor)
 {
     struct udev_device *udev_device;
-    struct sockaddr_nl sa = {0};
-    struct msghdr hdr = {0};
-    struct iovec iov = {0};
+    struct sockaddr_nl sa = { 0 };
+    struct msghdr hdr = { 0 };
+    struct iovec iov = { 0 };
     char buf[8192];
     ssize_t len;
 
@@ -142,7 +142,7 @@ struct udev_device *udev_monitor_receive_device(struct udev_monitor *udev_monito
 
 int udev_monitor_enable_receiving(struct udev_monitor *udev_monitor)
 {
-    struct sockaddr_nl sa = {0};
+    struct sockaddr_nl sa = { 0 };
 
     if (!udev_monitor) {
         return -1;
