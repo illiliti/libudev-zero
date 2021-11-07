@@ -1,11 +1,11 @@
 /*
  * Copyright (c) 2020-2021 illiliti <illiliti@protonmail.com>
  * SPDX-License-Identifier: ISC
- * 
+ *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -15,13 +15,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <dirent.h>
+#include <fnmatch.h>
+#include <limits.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <dirent.h>
 #include <string.h>
-#include <limits.h>
-#include <fnmatch.h>
-#include <pthread.h>
 
 #include "udev.h"
 #include "udev_list.h"
@@ -80,7 +80,9 @@ int udev_enumerate_add_match_sysname(struct udev_enumerate *udev_enumerate, cons
     return 0;
 }
 
-/* XXX NOT IMPLEMENTED */ int udev_enumerate_add_match_parent(struct udev_enumerate *udev_enumerate, struct udev_device *parent)
+/* XXX NOT IMPLEMENTED */ int udev_enumerate_add_match_parent(
+    struct udev_enumerate *udev_enumerate,
+    struct udev_device *parent)
 {
     return 0;
 }
@@ -176,8 +178,7 @@ static int filter_property(struct udev_enumerate *udev_enumerate, struct udev_de
             value2 = udev_list_entry_get_value(list_entry2);
 
             if (value && value2) {
-                if (fnmatch(property, property2, 0) == 0 &&
-                    fnmatch(value, value2, 0) == 0) {
+                if (fnmatch(property, property2, 0) == 0 && fnmatch(value, value2, 0) == 0) {
                     return 1;
                 }
             }
@@ -249,8 +250,7 @@ static void *add_device(void *ptr)
     }
 
     if (!filter_subsystem(thread->udev_enumerate, udev_device) ||
-        !filter_sysname(thread->udev_enumerate, udev_device) ||
-        !filter_property(thread->udev_enumerate, udev_device) ||
+        !filter_sysname(thread->udev_enumerate, udev_device) || !filter_property(thread->udev_enumerate, udev_device) ||
         !filter_sysattr(thread->udev_enumerate, udev_device)) {
         udev_device_unref(udev_device);
         return NULL;

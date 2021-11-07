@@ -1,11 +1,11 @@
 /*
  * Copyright (c) 2020-2021 illiliti <illiliti@protonmail.com>
  * SPDX-License-Identifier: ISC
- * 
+ *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -15,11 +15,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <string.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <sys/socket.h>
 #include <linux/netlink.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 #include "udev.h"
 #include "udev_list.h"
@@ -94,9 +94,9 @@ static int filter_subsystem(struct udev_monitor *udev_monitor, struct udev_devic
 struct udev_device *udev_monitor_receive_device(struct udev_monitor *udev_monitor)
 {
     struct udev_device *udev_device;
-    struct sockaddr_nl sa = {0};
-    struct msghdr hdr = {0};
-    struct iovec iov = {0};
+    struct sockaddr_nl sa = { 0 };
+    struct msghdr hdr = { 0 };
+    struct iovec iov = { 0 };
     char buf[8192];
     ssize_t len;
 
@@ -129,8 +129,7 @@ struct udev_device *udev_monitor_receive_device(struct udev_monitor *udev_monito
             continue;
         }
 
-        if (!filter_subsystem(udev_monitor, udev_device) ||
-            !filter_devtype(udev_monitor, udev_device)) {
+        if (!filter_subsystem(udev_monitor, udev_device) || !filter_devtype(udev_monitor, udev_device)) {
             udev_device_unref(udev_device);
             continue;
         }
@@ -143,7 +142,7 @@ struct udev_device *udev_monitor_receive_device(struct udev_monitor *udev_monito
 
 int udev_monitor_enable_receiving(struct udev_monitor *udev_monitor)
 {
-    struct sockaddr_nl sa = {0};
+    struct sockaddr_nl sa = { 0 };
 
     if (!udev_monitor) {
         return -1;
@@ -179,7 +178,10 @@ struct udev *udev_monitor_get_udev(struct udev_monitor *udev_monitor)
     return 0;
 }
 
-int udev_monitor_filter_add_match_subsystem_devtype(struct udev_monitor *udev_monitor, const char *subsystem, const char *devtype)
+int udev_monitor_filter_add_match_subsystem_devtype(
+    struct udev_monitor *udev_monitor,
+    const char *subsystem,
+    const char *devtype)
 {
     if (!udev_monitor || !subsystem) {
         return -1;

@@ -1,11 +1,11 @@
 /*
  * Copyright (c) 2020-2021 illiliti <illiliti@protonmail.com>
  * SPDX-License-Identifier: ISC
- * 
+ *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -29,7 +29,7 @@
 extern "C" {
 #endif
 
-#define udev_list_entry_foreach(list_entry, first_entry) \
+#define udev_list_entry_foreach(list_entry, first_entry)                                                               \
     for (list_entry = first_entry; list_entry; list_entry = udev_list_entry_get_next(list_entry))
 
 struct udev;
@@ -43,9 +43,16 @@ struct udev *udev_new(void);
 struct udev *udev_ref(struct udev *udev);
 struct udev *udev_unref(struct udev *udev);
 
-void udev_set_log_fn(struct udev *udev, void (*log_fn)(struct udev *udev,
-            int priority, const char *file, int line, const char *fn,
-            const char *format, va_list args));
+void udev_set_log_fn(
+    struct udev *udev,
+    void (*log_fn)(
+        struct udev *udev,
+        int priority,
+        const char *file,
+        int line,
+        const char *fn,
+        const char *format,
+        va_list args));
 void udev_set_log_priority(struct udev *udev, int priority);
 int udev_get_log_priority(struct udev *udev);
 
@@ -62,7 +69,10 @@ const char *udev_device_get_subsystem(struct udev_device *udev_device);
 const char *udev_device_get_driver(struct udev_device *udev_device);
 struct udev *udev_device_get_udev(struct udev_device *udev_device);
 struct udev_device *udev_device_get_parent(struct udev_device *udev_device);
-struct udev_device *udev_device_get_parent_with_subsystem_devtype(struct udev_device *udev_device, const char *subsystem, const char *devtype);
+struct udev_device *udev_device_get_parent_with_subsystem_devtype(
+    struct udev_device *udev_device,
+    const char *subsystem,
+    const char *devtype);
 int udev_device_get_is_initialized(struct udev_device *udev_device);
 const char *udev_device_get_action(struct udev_device *udev_device);
 
@@ -77,7 +87,10 @@ int udev_device_set_sysattr_value(struct udev_device *udev_device, const char *s
 
 struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *syspath);
 struct udev_device *udev_device_new_from_devnum(struct udev *udev, char type, dev_t devnum);
-struct udev_device *udev_device_new_from_subsystem_sysname(struct udev *udev, const char *subsystem, const char *sysname);
+struct udev_device *udev_device_new_from_subsystem_sysname(
+    struct udev *udev,
+    const char *subsystem,
+    const char *sysname);
 struct udev_device *udev_device_new_from_device_id(struct udev *udev, const char *id);
 struct udev_device *udev_device_new_from_environment(struct udev *udev);
 struct udev_device *udev_device_ref(struct udev_device *udev_device);
@@ -116,7 +129,10 @@ struct udev *udev_monitor_get_udev(struct udev_monitor *udev_monitor);
 
 int udev_monitor_filter_update(struct udev_monitor *udev_monitor);
 int udev_monitor_filter_remove(struct udev_monitor *udev_monitor);
-int udev_monitor_filter_add_match_subsystem_devtype(struct udev_monitor *udev_monitor, const char *subsystem, const char *devtype);
+int udev_monitor_filter_add_match_subsystem_devtype(
+    struct udev_monitor *udev_monitor,
+    const char *subsystem,
+    const char *devtype);
 int udev_monitor_filter_add_match_tag(struct udev_monitor *udev_monitor, const char *tag);
 
 struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char *name);
@@ -126,7 +142,10 @@ struct udev_monitor *udev_monitor_unref(struct udev_monitor *udev_monitor);
 struct udev_hwdb *udev_hwdb_new(struct udev *udev);
 struct udev_hwdb *udev_hwdb_ref(struct udev_hwdb *hwdb);
 struct udev_hwdb *udev_hwdb_unref(struct udev_hwdb *hwdb);
-struct udev_list_entry *udev_hwdb_get_properties_list_entry(struct udev_hwdb *hwdb, const char *modalias, unsigned int flags);
+struct udev_list_entry *udev_hwdb_get_properties_list_entry(
+    struct udev_hwdb *hwdb,
+    const char *modalias,
+    unsigned int flags);
 
 // this is "libudev-zero" extension. do not use if portability is concern
 struct udev_device *udev_device_new_from_uevent(struct udev *udev, char *buf, size_t len);

@@ -1,11 +1,11 @@
 /*
  * Copyright (c) 2020-2021 illiliti <illiliti@protonmail.com>
  * SPDX-License-Identifier: ISC
- * 
+ *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -15,13 +15,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
 #include <limits.h>
-#include <sys/stat.h>
 #include <linux/input.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "udev.h"
 #include "udev_list.h"
@@ -169,7 +169,10 @@ struct udev_device *udev_device_get_parent(struct udev_device *udev_device)
     return udev_device->parent;
 }
 
-struct udev_device *udev_device_get_parent_with_subsystem_devtype(struct udev_device *udev_device, const char *subsystem, const char *devtype)
+struct udev_device *udev_device_get_parent_with_subsystem_devtype(
+    struct udev_device *udev_device,
+    const char *subsystem,
+    const char *devtype)
 {
     const char *parent_subsystem, *parent_devtype;
     struct udev_device *parent;
@@ -397,11 +400,11 @@ static int test_bit(unsigned long *arr, unsigned long bit)
 static void set_properties_from_evdev(struct udev_device *udev_device)
 {
     // https://kernel.org/doc/html/latest/driver-api/input.html#c.input_dev
-    unsigned long prop_bits[BITS_TO_LONGS(INPUT_PROP_CNT)] = {0};
-    unsigned long abs_bits[BITS_TO_LONGS(ABS_CNT)] = {0};
-    unsigned long rel_bits[BITS_TO_LONGS(REL_CNT)] = {0};
-    unsigned long key_bits[BITS_TO_LONGS(KEY_CNT)] = {0};
-    unsigned long ev_bits[BITS_TO_LONGS(EV_CNT)] = {0};
+    unsigned long prop_bits[BITS_TO_LONGS(INPUT_PROP_CNT)] = { 0 };
+    unsigned long abs_bits[BITS_TO_LONGS(ABS_CNT)] = { 0 };
+    unsigned long rel_bits[BITS_TO_LONGS(REL_CNT)] = { 0 };
+    unsigned long key_bits[BITS_TO_LONGS(KEY_CNT)] = { 0 };
+    unsigned long ev_bits[BITS_TO_LONGS(EV_CNT)] = { 0 };
     struct udev_device *parent;
     const char *subsystem;
     unsigned long bit;
@@ -447,14 +450,13 @@ static void set_properties_from_evdev(struct udev_device *udev_device)
     }
 
     if (test_bit(ev_bits, EV_REL)) {
-        if (test_bit(rel_bits, REL_Y) && test_bit(rel_bits, REL_X) &&
-            test_bit(key_bits, BTN_MOUSE)) {
+        if (test_bit(rel_bits, REL_Y) && test_bit(rel_bits, REL_X) && test_bit(key_bits, BTN_MOUSE)) {
             udev_list_entry_add(&udev_device->properties, "ID_INPUT_MOUSE", "1", 0);
         }
     }
     else if (test_bit(ev_bits, EV_ABS)) {
-        if (test_bit(key_bits, BTN_SELECT) || test_bit(key_bits, BTN_TR) ||
-            test_bit(key_bits, BTN_START) || test_bit(key_bits, BTN_TL)) {
+        if (test_bit(key_bits, BTN_SELECT) || test_bit(key_bits, BTN_TR) || test_bit(key_bits, BTN_START) ||
+            test_bit(key_bits, BTN_TL)) {
             if (test_bit(key_bits, BTN_TOUCH)) {
                 udev_list_entry_add(&udev_device->properties, "ID_INPUT_TOUCHSCREEN", "1", 0);
             }
@@ -612,7 +614,10 @@ struct udev_device *udev_device_new_from_devnum(struct udev *udev, char type, de
     return udev_device_new_from_syspath(udev, path);
 }
 
-struct udev_device *udev_device_new_from_subsystem_sysname(struct udev *udev, const char *subsystem, const char *sysname)
+struct udev_device *udev_device_new_from_subsystem_sysname(
+    struct udev *udev,
+    const char *subsystem,
+    const char *sysname)
 {
     const char *fmt[] = { "/sys/bus/%s/devices/%s", "/sys/class/%s/%s", NULL };
     char path[PATH_MAX];
@@ -655,7 +660,7 @@ struct udev_device *udev_device_new_from_uevent(struct udev *udev, char *buf, si
     udev_list_entry_init(&udev_device->sysattrs);
 
     for (end = buf + len; buf < end; buf += strlen(buf) + 1) {
-       if (strncmp(buf, "DEVPATH=", 8) == 0) {
+        if (strncmp(buf, "DEVPATH=", 8) == 0) {
             snprintf(syspath, sizeof(syspath), "/sys%s", buf + 8);
             udev_list_entry_add(&udev_device->properties, "SYSPATH", syspath, 0);
             udev_list_entry_add(&udev_device->properties, "DEVPATH", buf + 8, 0);
@@ -685,9 +690,7 @@ struct udev_device *udev_device_new_from_uevent(struct udev *udev, char *buf, si
 
             *pos = '\0';
 
-            if (strcmp(buf, "SUBSYSTEM") == 0 ||
-                strcmp(buf, "ACTION") == 0 ||
-                strcmp(buf, "SEQNUM") == 0) {
+            if (strcmp(buf, "SUBSYSTEM") == 0 || strcmp(buf, "ACTION") == 0 || strcmp(buf, "SEQNUM") == 0) {
                 cnt++;
             }
 

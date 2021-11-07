@@ -1,11 +1,11 @@
 /*
  * Copyright (c) 2020-2021 illiliti <illiliti@protonmail.com>
  * SPDX-License-Identifier: ISC
- * 
+ *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -61,9 +61,16 @@ struct udev *udev_unref(struct udev *udev)
     return NULL;
 }
 
-void udev_set_log_fn(struct udev *udev, void (*log_fn)(struct udev *udev,
-            int priority, const char *file, int line, const char *fn,
-            const char *format, va_list args))
+void udev_set_log_fn(
+    struct udev *udev,
+    void (*log_fn)(
+        struct udev *udev,
+        int priority,
+        const char *file,
+        int line,
+        const char *fn,
+        const char *format,
+        va_list args))
 {
 }
 
@@ -91,7 +98,10 @@ int udev_get_log_priority(struct udev *udev)
     return NULL;
 }
 
-/* XXX NOT IMPLEMENTED */ struct udev_list_entry *udev_hwdb_get_properties_list_entry(struct udev_hwdb *hwdb, const char *modalias, unsigned int flags)
+/* XXX NOT IMPLEMENTED */ struct udev_list_entry *udev_hwdb_get_properties_list_entry(
+    struct udev_hwdb *hwdb,
+    const char *modalias,
+    unsigned int flags)
 {
     return NULL;
 }
