@@ -8,8 +8,7 @@ PKGCONFIGDIR = ${LIBDIR}/pkgconfig
 XCFLAGS = ${CPPFLAGS} ${CFLAGS} -std=c99 -fPIC -pthread -D_XOPEN_SOURCE=700 \
 		  -Wall -Wextra -Wpedantic -Wmissing-prototypes -Wstrict-prototypes \
 		  -Wno-unused-parameter
-XLDFLAGS = ${LDFLAGS} -shared -Wl,-soname,libudev.so.1 \
-		   -Wl,-version-script,libudev.sym
+XLDFLAGS = ${LDFLAGS} -shared -Wl,-soname,libudev.so.1
 XARFLAGS = -rc
 
 OBJ = \
