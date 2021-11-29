@@ -45,13 +45,24 @@ libudev.pc: libudev.pc.in
 		-e 's|@VERSION@|243|g' \
 		libudev.pc.in > libudev.pc
 
-install: libudev.so.1 libudev.a libudev.pc
-	mkdir -p         ${DESTDIR}${INCLUDEDIR} ${DESTDIR}${LIBDIR} ${DESTDIR}${PKGCONFIGDIR}
-	cp -f udev.h  	 ${DESTDIR}${INCLUDEDIR}/libudev.h
-	cp -f libudev.a  ${DESTDIR}${LIBDIR}/libudev.a
+install-headers: udev.h
+	mkdir -p ${DESTDIR}${INCLUDEDIR}
+	cp -f udev.h ${DESTDIR}${INCLUDEDIR}/libudev.h
+
+install-pkgconfig: libudev.pc
+	mkdir -p ${DESTDIR}${PKGCONFIGDIR}
+	cp -f libudev.pc ${DESTDIR}${PKGCONFIGDIR}/libudev.pc
+
+install-shared: libudev.so.1 install-headers install-pkgconfig
+	mkdir -p ${DESTDIR}${LIBDIR}
 	cp -f libudev.so.1 ${DESTDIR}${LIBDIR}/libudev.so.1
 	ln -fs libudev.so.1 ${DESTDIR}${LIBDIR}/libudev.so
-	cp -f libudev.pc ${DESTDIR}${PKGCONFIGDIR}/libudev.pc
+
+install-static: libudev.a install-headers install-pkgconfig
+	mkdir -p ${DESTDIR}${LIBDIR}
+	cp -f libudev.a ${DESTDIR}${LIBDIR}/libudev.a
+
+install: install-shared install-static
 
 uninstall:
 	rm -f ${DESTDIR}${LIBDIR}/libudev.a \
@@ -63,4 +74,5 @@ uninstall:
 clean:
 	rm -f libudev.so.1 libudev.a libudev.pc ${OBJ}
 
-.PHONY: all clean install uninstall
+.PHONY: all clean install-headers install-pkgconfig install-shared \
+	install-static install uninstall
