@@ -26,6 +26,10 @@
 #include "udev.h"
 #include "udev_list.h"
 
+#ifndef LINE_MAX
+#define LINE_MAX 2048
+#endif
+
 #ifndef LONG_BIT
 #define LONG_BIT (sizeof(unsigned long) * 8)
 #endif
