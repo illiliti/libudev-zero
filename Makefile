@@ -10,6 +10,7 @@ XCFLAGS = ${CPPFLAGS} ${CFLAGS} -std=c99 -fPIC -pthread -D_XOPEN_SOURCE=700 \
 		  -Wno-unused-parameter
 XLDFLAGS = ${LDFLAGS} -shared -Wl,-soname,libudev.so.1
 XARFLAGS = -rc
+AR = ar
 
 OBJ = \
 	  udev.o \
