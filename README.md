@@ -4,27 +4,27 @@ Drop-in replacement for `libudev` intended to work with any device manager
 
 ## Why?
 
-We all know that systemd is very hostile towards portability. Udev inherited
-the same problem by exposing a very badly designed library interface. This is
+We all know that systemd is very hostile towards portability. udev inherited
+the same problem by exposing a very badly designed library interface. This
 dramatically reduces portability, user choice and basically creates vendor
-lock-in because library interface highly tied to udev daemon.
+lock-in because the library interface highly tied to the udev daemon.
 
-Another udev problem is non-portable home-grown language called "udev rules".
-Udev authors definitely don't know(or care) why it's better to avoid reinventing
-the wheel. Strictly speaking, I think they did that on purpose to overcomplicate
-udev as much as possible. Why? So that only authors(RedHat/IBM) can rule and dictate
-the future of udev. The recent eudev death only proves that it's really hard to
-support such unmaintainable mess.
+Another udev problem is the non-portable home-grown language called "udev
+rules".  The udev authors definitely don't know(or care) why it's better to
+avoid reinventing the wheel. Strictly speaking, I think they did that on
+purpose to overcomplicate udev as much as possible. Why? So that only the
+authors(RedHat/IBM) can rule and dictate the future of udev. The recent eudev
+death only proves that it's really hard to support such unmaintainable mess.
 
-Udev hwdb is yet another illustration of systemd-like approach. What the hell
-"userspace /dev" has to do with parsing hardware database(pci.ids, usb.ids)
-and setting/remapping buttons? Udev smells like systemd by trying to implement
-all possible functionality in the single daemon/code base. Standalone UNIX-way
-programs much better suited for such purposes.
+The udev hwdb is yet another illustration of a systemd-like approach. What the
+hell does "userspace /dev" have to do with parsing hardware database(pci.ids,
+usb.ids) and setting/remapping buttons? udev smells like systemd by trying to
+implement all possible functionality in the single daemon/code base. Programs
+that follow the UNIX philosophy is much better suited for such purposes.
 
 ## Pros/Cons
 
-Keep in mind that libudev-zero isn't ideal. Here is some pros/cons:
+Keep in mind that libudev-zero isn't ideal. Here are some pros/cons:
 
 ### Pros
 
@@ -71,26 +71,26 @@ make PREFIX=/usr install
 Note that hotplugging support is fully optional. You can skip
 this step if you don't have a need for the hotplugging capability.
 
-If you're using mdev-like device manager, refer to [mdev.conf](contrib/mdev.conf)
-for config example.
+If you're using an mdev-like device manager, refer to [mdev.conf](contrib/mdev.conf)
+for a config example.
 
-If you're using other device manager, you need to configure it to rebroadcast
-kernel uevents. You can do this by either patching(see below) device manager
+If you're using another device manager, you need to configure it to rebroadcast
+kernel uevents. You can do this by either patching(see below) the device manager
 or simply executing [helper.c](contrib/helper.c) for each uevent.
 
 If you're developing your own device manager, you need to rebroadcast kernel
-uevents to `0x4` netlink group of `NETLINK_KOBJECT_UEVENT`. This is required
+uevents to the `0x4` netlink group of `NETLINK_KOBJECT_UEVENT`. This is required
 because libudev-zero can't simply listen to kernel uevents due to potential
-race conditions. Refer(but don't copy blindly) to [helper.c](contrib/helper.c)
-for example how it could be implemented in C.
+race conditions. Refer to (but don't copy blindly) [helper.c](contrib/helper.c)
+for an example of how it could be implemented in C.
 
-Don't hesitate to ask me everything you don't understand. I'm usually hanging
+Don't hesitate to ask me about anything you don't understand. I'm usually hanging
 around in #kisslinux at libera.chat, but you can also email me or open an issue here.
 
 ## Future directions
 
 1. Write a better cross-platform(*nix, maybe macos and windows) device enumeration library.
-2. Convince mainstream apps(libinput, wlroots, ...) to use new library instead of libudev.
+2. Convince mainstream apps(libinput, wlroots, ...) to use a new library instead of libudev.
 3. Declare libudev as obsolete library and archive this project.
 
 ## Donate
