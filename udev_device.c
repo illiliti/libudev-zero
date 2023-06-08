@@ -262,13 +262,14 @@ const char *udev_device_get_sysattr_value(struct udev_device *udev_device, const
 
     snprintf(path, sizeof(path), "%s/%s", udev_device_get_syspath(udev_device), sysattr);
 
-    if (lstat(path, &st) != 0 || !S_ISREG(st.st_mode)) {
-        return NULL;
-    }
-
     file = fopen(path, "r");
 
     if (!file) {
+        return NULL;
+    }
+
+    if (fstat(fileno(file), &st) != 0 || !S_ISREG(st.st_mode)) {
+        fclose(file);
         return NULL;
     }
 
@@ -304,13 +305,14 @@ int udev_device_set_sysattr_value(struct udev_device *udev_device, const char *s
 
     snprintf(path, sizeof(path), "%s/%s", udev_device_get_syspath(udev_device), sysattr);
 
-    if (lstat(path, &st) != 0 || !S_ISREG(st.st_mode)) {
-        return -1;
-    }
-
     file = fopen(path, "w");
 
     if (!file) {
+        return -1;
+    }
+
+    if (fstat(fileno(file), &st) != 0 || !S_ISREG(st.st_mode)) {
+        fclose(file);
         return -1;
     }
 
