@@ -228,6 +228,11 @@ struct udev_list_entry *udev_device_get_properties_list_entry(struct udev_device
     return NULL;
 }
 
+/* XXX NOT IMPLEMENTED */ struct udev_list_entry *udev_device_get_current_tags_list_entry(struct udev_device *udev_device)
+{
+    return NULL;
+}
+
 struct udev_list_entry *udev_device_get_sysattr_list_entry(struct udev_device *udev_device)
 {
     return udev_device ? udev_list_entry_get_next(&udev_device->sysattrs) : NULL;

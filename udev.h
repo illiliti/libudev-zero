@@ -70,6 +70,7 @@ int udev_device_has_tag(struct udev_device *udev_device, const char *tag);
 struct udev_list_entry *udev_device_get_devlinks_list_entry(struct udev_device *udev_device);
 struct udev_list_entry *udev_device_get_properties_list_entry(struct udev_device *udev_device);
 struct udev_list_entry *udev_device_get_tags_list_entry(struct udev_device *udev_device);
+struct udev_list_entry *udev_device_get_current_tags_list_entry(struct udev_device *udev_device);
 struct udev_list_entry *udev_device_get_sysattr_list_entry(struct udev_device *udev_device);
 const char *udev_device_get_property_value(struct udev_device *udev_device, const char *key);
 const char *udev_device_get_sysattr_value(struct udev_device *udev_device, const char *sysattr);
