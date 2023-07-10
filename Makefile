@@ -43,7 +43,7 @@ libudev.pc: libudev.pc.in
 		-e 's|@exec_prefix@|${PREFIX}|g' \
 		-e "s|@libdir@|$$libdir|g" \
 		-e "s|@includedir@|$$includedir|g" \
-		-e 's|@VERSION@|243|g' \
+		-e 's|@VERSION@|251|g' \
 		libudev.pc.in > libudev.pc
 
 install-headers: udev.h
