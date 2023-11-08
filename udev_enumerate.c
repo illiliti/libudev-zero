@@ -291,14 +291,7 @@ static int scan_devices(struct udev_enumerate *udev_enumerate, const char *path)
 
         snprintf(thread[i].path, sizeof(thread[i].path), "%s/%s", path, de[i]->d_name);
 
-        if (pthread_create(&thread[i].thread, NULL, add_device, &thread[i]) != 0) {
-            ret = 0;
-            break;
-        }
-    }
-
-    for (i = 0; i < cnt; i++) {
-        pthread_join(thread[i].thread, NULL);
+        add_device(&thread[i]);
     }
 
     free(thread);
