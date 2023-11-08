@@ -21,7 +21,6 @@
 #include <string.h>
 #include <limits.h>
 #include <fnmatch.h>
-#include <pthread.h>
 
 #include "udev.h"
 #include "udev_list.h"
@@ -36,13 +35,6 @@ struct udev_enumerate {
     struct udev_list_entry devices;
     struct udev *udev;
     int refcount;
-};
-
-struct udev_enumerate_thread {
-    struct udev_enumerate *udev_enumerate;
-    pthread_mutex_t *mutex;
-    char path[PATH_MAX];
-    pthread_t thread;
 };
 
 int udev_enumerate_add_match_subsystem(struct udev_enumerate *udev_enumerate, const char *subsystem)
@@ -231,31 +223,27 @@ static int filter_sysattr(struct udev_enumerate *udev_enumerate, struct udev_dev
     return 1;
 }
 
-static void *add_device(void *ptr)
+static void add_device(struct udev_enumerate *udev_enumerate, const char *path)
 {
-    struct udev_enumerate_thread *thread = ptr;
     struct udev_device *udev_device;
 
-    udev_device = udev_device_new_from_syspath(thread->udev_enumerate->udev, thread->path);
+    udev_device = udev_device_new_from_syspath(udev_enumerate->udev, path);
 
     if (!udev_device) {
-        return NULL;
+        return;
     }
 
-    if (!filter_subsystem(thread->udev_enumerate, udev_device) ||
-        !filter_sysname(thread->udev_enumerate, udev_device) ||
-        !filter_property(thread->udev_enumerate, udev_device) ||
-        !filter_sysattr(thread->udev_enumerate, udev_device)) {
+    if (!filter_subsystem(udev_enumerate, udev_device) ||
+        !filter_sysname(udev_enumerate, udev_device) ||
+        !filter_property(udev_enumerate, udev_device) ||
+        !filter_sysattr(udev_enumerate, udev_device)) {
         udev_device_unref(udev_device);
-        return NULL;
+        return;
     }
 
-    pthread_mutex_lock(thread->mutex);
-    udev_list_entry_add(&thread->udev_enumerate->devices, udev_device_get_syspath(udev_device), NULL, 0);
-    pthread_mutex_unlock(thread->mutex);
+    udev_list_entry_add(&udev_enumerate->devices, udev_device_get_syspath(udev_device), NULL, 0);
 
     udev_device_unref(udev_device);
-    return NULL;
 }
 
 static int filter_dot(const struct dirent *de)
@@ -265,9 +253,7 @@ static int filter_dot(const struct dirent *de)
 
 static int scan_devices(struct udev_enumerate *udev_enumerate, const char *path)
 {
-    struct udev_enumerate_thread *thread;
-    pthread_mutex_t mutex;
-    int i, cnt, ret = 1;
+    int i, cnt;
     struct dirent **de;
 
     cnt = scandir(path, &de, filter_dot, NULL);
@@ -276,34 +262,18 @@ static int scan_devices(struct udev_enumerate *udev_enumerate, const char *path)
         return 0;
     }
 
-    thread = calloc(cnt, sizeof(*thread));
-
-    if (!thread) {
-        ret = 0;
-        goto free_de;
-    }
-
-    pthread_mutex_init(&mutex, NULL);
-
     for (i = 0; i < cnt; i++) {
-        thread[i].mutex = &mutex;
-        thread[i].udev_enumerate = udev_enumerate;
-
-        snprintf(thread[i].path, sizeof(thread[i].path), "%s/%s", path, de[i]->d_name);
-
-        add_device(&thread[i]);
+        char device_path[PATH_MAX];
+        snprintf(device_path, sizeof(device_path), "%s/%s", path, de[i]->d_name);
+        add_device(udev_enumerate, device_path);
     }
 
-    free(thread);
-    pthread_mutex_destroy(&mutex);
-
-free_de:
     for (i = 0; i < cnt; i++) {
         free(de[i]);
     }
 
     free(de);
-    return ret;
+    return 1;
 }
 
 int udev_enumerate_scan_devices(struct udev_enumerate *udev_enumerate)
