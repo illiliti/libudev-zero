@@ -9,5 +9,4 @@ Description: Daemonless replacement for libudev
 Version: @VERSION@
 URL: https://github.com/illiliti/libudev-zero
 Libs: -L${libdir} -ludev
-Libs.private: -pthread
 Cflags: -I${includedir}
