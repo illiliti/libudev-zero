@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: ISC
 .POSIX:
 
-PREFIX = /usr/local
-LIBDIR = ${PREFIX}/lib
-INCLUDEDIR = ${PREFIX}/include
-PKGCONFIGDIR = ${LIBDIR}/pkgconfig
+PREFIX ?= /usr/local
+LIBDIR ?= ${PREFIX}/lib
+INCLUDEDIR ?= ${PREFIX}/include
+PKGCONFIGDIR ?= ${LIBDIR}/pkgconfig
 XCFLAGS = ${CPPFLAGS} ${CFLAGS} -std=c99 -fPIC -D_XOPEN_SOURCE=700 \
 		  -Wall -Wextra -Wpedantic -Wmissing-prototypes -Wstrict-prototypes \
 		  -Wno-unused-parameter
