@@ -458,13 +458,7 @@ static void set_properties_from_evdev(struct udev_device *udev_device)
         udev_list_entry_add(&udev_device->properties, "ID_INPUT_SWITCH", "1", 0);
     }
 
-    if (test_bit(ev_bits, EV_REL)) {
-        if (test_bit(rel_bits, REL_Y) && test_bit(rel_bits, REL_X) &&
-            test_bit(key_bits, BTN_MOUSE)) {
-            udev_list_entry_add(&udev_device->properties, "ID_INPUT_MOUSE", "1", 0);
-        }
-    }
-    else if (test_bit(ev_bits, EV_ABS)) {
+    if (test_bit(ev_bits, EV_ABS)) {
         if (test_bit(key_bits, BTN_SELECT) || test_bit(key_bits, BTN_TR) ||
             test_bit(key_bits, BTN_START) || test_bit(key_bits, BTN_TL)) {
             if (test_bit(key_bits, BTN_TOUCH)) {
@@ -492,6 +486,12 @@ static void set_properties_from_evdev(struct udev_device *udev_device)
             else if (test_bit(key_bits, BTN_MOUSE)) {
                 udev_list_entry_add(&udev_device->properties, "ID_INPUT_MOUSE", "1", 0);
             }
+        }
+    }
+    else if (test_bit(ev_bits, EV_REL)) {
+        if (test_bit(rel_bits, REL_Y) && test_bit(rel_bits, REL_X) &&
+            test_bit(key_bits, BTN_MOUSE)) {
+            udev_list_entry_add(&udev_device->properties, "ID_INPUT_MOUSE", "1", 0);
         }
     }
 
