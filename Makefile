@@ -3,11 +3,14 @@
 
 PREFIX = /usr/local
 LIBDIR = ${PREFIX}/lib
+LIBEXECDIR = ${PREFIX}/libexec
 INCLUDEDIR = ${PREFIX}/include
 PKGCONFIGDIR = ${LIBDIR}/pkgconfig
-XCFLAGS = ${CPPFLAGS} ${CFLAGS} -std=c99 -fPIC -D_XOPEN_SOURCE=700 \
+RULES_HELPER_PATH = ${LIBEXECDIR}/libudev-zero-rules-helper
+XCFLAGS = ${CPPFLAGS} ${CFLAGS} -std=c99 -fPIC -D_GNU_SOURCE \
 		  -Wall -Wextra -Wpedantic -Wmissing-prototypes -Wstrict-prototypes \
-		  -Wno-unused-parameter
+		  -Wno-unused-parameter \
+		  -DRULES_HELPER_PATH=\"${RULES_HELPER_PATH}\"
 XLDFLAGS = ${LDFLAGS} -shared -Wl,-soname,libudev.so.1
 XARFLAGS = -rc
 AR = ar

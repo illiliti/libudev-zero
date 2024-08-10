@@ -15,12 +15,16 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <assert.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <spawn.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <linux/input.h>
 
 #include "udev.h"
@@ -50,6 +54,18 @@
 
 #ifndef INPUT_PROP_CNT
 #define INPUT_PROP_CNT 0x20
+#endif
+
+#ifndef RULES_HELPER_PATH
+#error "RULES_HELPER_PATH not specified"
+#endif
+
+#ifndef UEVENT_NUM_ENVP
+#define UEVENT_NUM_ENVP 64
+#endif
+
+#ifndef UEVENT_BUFFER_SIZE
+#define UEVENT_BUFFER_SIZE 2048
 #endif
 
 struct udev_device {
@@ -349,19 +365,10 @@ static char *read_symlink(const char *syspath, const char *name)
     return strdup(strrchr(link, '/') + 1);
 }
 
-static int set_properties_from_uevent(struct udev_device *udev_device, const char *syspath)
+static void set_properties_from_file(struct udev_device *udev_device, FILE *file)
 {
-    char line[LINE_MAX], path[PATH_MAX + sizeof("/uevent")], devnode[PATH_MAX];
-    FILE *file;
+    char line[LINE_MAX], devnode[PATH_MAX];
     char *pos;
-
-    snprintf(path, sizeof(path), "%s/uevent", syspath);
-    file = fopen(path, "r");
-
-    if (!file) {
-        return -1;
-    }
-
     while (fgets(line, sizeof(line), file)) {
         line[strlen(line) - 1] = '\0';
 
@@ -374,7 +381,21 @@ static int set_properties_from_uevent(struct udev_device *udev_device, const cha
             udev_list_entry_add(&udev_device->properties, line, pos + 1, 0);
         }
     }
+}
 
+static int set_properties_from_uevent(struct udev_device *udev_device, const char *syspath)
+{
+    char path[PATH_MAX + sizeof("/uevent")];
+    FILE *file;
+
+    snprintf(path, sizeof(path), "%s/uevent", syspath);
+    file = fopen(path, "r");
+
+    if (!file) {
+        return -1;
+    }
+
+    set_properties_from_file(udev_device, file);
     fclose(file);
     return 0;
 }
@@ -540,6 +561,78 @@ static void set_properties_from_props(struct udev_device *udev_device)
     udev_list_entry_add(&udev_device->properties, "ID_PATH", id, 0);
 }
 
+static int set_properties_from_helper(struct udev_device *udev_device)
+{
+    char *envp[UEVENT_NUM_ENVP];
+    char env[UEVENT_BUFFER_SIZE];
+
+    size_t env_offset = 0;
+    size_t env_idx = 0;
+    struct udev_list_entry *entry;
+
+    for (entry = udev_device_get_properties_list_entry(udev_device);
+         entry;
+         entry = udev_list_entry_get_next(entry)) {
+        const char *name = entry->name;
+        const char *value = entry->value ? entry->value : "";
+
+        // '{name}={value}\0'
+        size_t max_size = strlen(name) + 1 + strlen(value) + 1;
+
+        assert(env_offset + max_size < UEVENT_BUFFER_SIZE);
+        snprintf(&env[env_offset], max_size, "%s=%s", name, value);
+
+        assert(env_idx < UEVENT_NUM_ENVP);
+        envp[env_idx] = &env[env_offset];
+
+        env_offset += max_size;
+        env_idx++;
+    }
+
+    assert(env_idx < UEVENT_NUM_ENVP);
+    envp[env_idx] = NULL;
+
+    int out_pipe[2];
+
+    if (pipe2(out_pipe, O_CLOEXEC)) {
+        return -1;
+    }
+
+    posix_spawn_file_actions_t actions;
+
+    posix_spawn_file_actions_init(&actions);
+    posix_spawn_file_actions_addclose(&actions, out_pipe[0]);
+    posix_spawn_file_actions_addopen(&actions, STDIN_FILENO, "/dev/null", O_RDONLY, 0);
+    posix_spawn_file_actions_adddup2(&actions, out_pipe[1], STDOUT_FILENO);
+    posix_spawn_file_actions_addopen(&actions, STDERR_FILENO, "/dev/null", O_WRONLY, 0);
+    posix_spawn_file_actions_addclose(&actions, out_pipe[1]);
+
+    pid_t pid;
+
+    char argv0[] = RULES_HELPER_PATH;
+    char *argv[] = { argv0, NULL };
+
+    if (posix_spawn(&pid, argv0, &actions, NULL, argv, envp)) {
+        return -1;
+    }
+
+    posix_spawn_file_actions_destroy(&actions);
+    close(out_pipe[1]);
+
+    FILE *file = fdopen(out_pipe[0], "r");
+
+    if (!file) {
+        close(out_pipe[0]);
+        waitpid(pid. NULL, 0);
+        return -1;
+    }
+
+    set_properties_from_file(udev_device, file);
+    fclose(file);
+    waitpid(pid, NULL, 0);
+    return 0;
+}
+
 struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *syspath)
 {
     char *subsystem, *driver, *sysname;
@@ -593,6 +686,7 @@ struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *
 
     set_properties_from_evdev(udev_device);
     set_properties_from_props(udev_device);
+    set_properties_from_helper(udev_device);
 
     free(driver);
     free(subsystem);
@@ -712,6 +806,7 @@ struct udev_device *udev_device_new_from_uevent(struct udev *udev, char *buf, si
 
     set_properties_from_props(udev_device);
     set_properties_from_evdev(udev_device);
+    set_properties_from_helper(udev_device);
     return udev_device;
 }
 
