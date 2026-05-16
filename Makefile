@@ -3,9 +3,12 @@
 
 PREFIX = /usr/local
 LIBDIR = ${PREFIX}/lib
+SHAREDIR = ${PREFIX}/share
 INCLUDEDIR = ${PREFIX}/include
 PKGCONFIGDIR = ${LIBDIR}/pkgconfig
+USB_IDS_PATH = ${SHAREDIR}/hwdata/usb.ids
 XCFLAGS = ${CPPFLAGS} ${CFLAGS} -std=c99 -fPIC -D_XOPEN_SOURCE=700 \
+		  -DUSB_IDS_PATH=\"${USB_IDS_PATH}\" \
 		  -Wall -Wextra -Wpedantic -Wmissing-prototypes -Wstrict-prototypes \
 		  -Wno-unused-parameter
 XLDFLAGS = ${LDFLAGS} -shared -Wl,-soname,libudev.so.1
