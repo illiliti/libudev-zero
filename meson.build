@@ -32,6 +32,21 @@ add_project_arguments(
     language: 'c',
 )
 
+symbol_versioning = get_option('symbol-versioning')
+libudev_link_args = []
+libudev_link_depends = []
+if symbol_versioning.allowed()
+    version_script = '-Wl,--version-script,@0@'.format(
+        meson.current_source_dir() / 'libudev.sym',
+    )
+    if cc.has_link_argument(version_script)
+        libudev_link_args += version_script
+        libudev_link_depends += files('libudev.sym')
+    elif symbol_versioning.enabled()
+        error('symbol-versioning was enabled, but the linker does not support --version-script')
+    endif
+endif
+
 libudev = library(
     'udev',
     files(
@@ -42,6 +57,8 @@ libudev = library(
         'udev_monitor.c',
     ),
     soversion: '1',
+    link_args: libudev_link_args,
+    link_depends: libudev_link_depends,
     install: true,
 )
 

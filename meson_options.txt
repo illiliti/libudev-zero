@@ -1,6 +1,13 @@
 # SPDX-License-Identifier: ISC
 
 option(
+    'symbol-versioning',
+    type: 'feature',
+    value: 'auto',
+    description: 'Version exported symbols for compatibility with the libudev ABI',
+)
+
+option(
     'usb-ids-path',
     type: 'string',
     value: '',
