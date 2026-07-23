@@ -278,20 +278,34 @@ static int scan_devices(struct udev_enumerate *udev_enumerate, const char *path)
 
 int udev_enumerate_scan_devices(struct udev_enumerate *udev_enumerate)
 {
-    const char *path[] = { "/sys/dev/block", "/sys/dev/char", NULL };
-    int i;
+    int i, cnt, ret;
+    struct dirent **de;
+
+    ret = 0;
 
     if (!udev_enumerate) {
         return -1;
     }
 
-    for (i = 0; path[i]; i++) {
-        if (!scan_devices(udev_enumerate, path[i])) {
-            return -1;
+    cnt = scandir("/sys/class", &de, filter_dot, NULL);
+
+    if (cnt == -1)
+        return -1;
+
+    for (i = 0; i < cnt; i++) {
+        char device_path[PATH_MAX];
+        snprintf(device_path, sizeof(device_path), "/sys/class/%s", de[i]->d_name);
+        if (!scan_devices(udev_enumerate, device_path)) {
+            ret = -1;
         }
     }
 
-    return 0;
+    for (i = 0; i < cnt; i++) {
+        free(de[i]);
+    }
+
+    free(de);
+    return ret;
 }
 
 /* XXX NOT IMPLEMENTED */ int udev_enumerate_scan_subsystems(struct udev_enumerate *udev_enumerate)
