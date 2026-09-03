@@ -225,7 +225,7 @@ static int filter_sysattr(struct udev_enumerate *udev_enumerate, struct udev_dev
 
 static void add_device(struct udev_enumerate *udev_enumerate, const char *path)
 {
-    struct udev_device *udev_device;
+    struct udev_device *udev_device, *parent;
 
     udev_device = udev_device_new_from_syspath(udev_enumerate->udev, path);
 
@@ -241,6 +241,8 @@ static void add_device(struct udev_enumerate *udev_enumerate, const char *path)
         return;
     }
 
+    if ((parent = udev_device_get_parent(udev_device)))
+        udev_list_entry_add(&udev_enumerate->devices, udev_device_get_syspath(parent), NULL, 0);
     udev_list_entry_add(&udev_enumerate->devices, udev_device_get_syspath(udev_device), NULL, 0);
 
     udev_device_unref(udev_device);

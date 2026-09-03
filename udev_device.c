@@ -16,6 +16,7 @@
  */
 
 #include <stdio.h>
+#include <dirent.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
@@ -379,6 +380,38 @@ static int set_properties_from_uevent(struct udev_device *udev_device, const cha
     return 0;
 }
 
+static void is_sound_initialized(struct udev_device *udev_device, const char* path) {
+    const char *subsystem;
+    DIR *device_folder;
+    struct dirent *dp;
+    char control[PATH_MAX];
+
+    subsystem = udev_device_get_subsystem(udev_device);
+    if (!subsystem || strcmp(subsystem, "sound") != 0) {
+        return;
+    }
+
+    if (strncmp(strrchr(path, '/'), "/card", 5)) {
+        snprintf(control, PATH_MAX, "%s/..", path);
+        device_folder = opendir(control);
+    } else {
+        device_folder = opendir(path);
+    }
+
+    if (!device_folder) {
+        return;
+    }
+
+    while ((dp = readdir(device_folder)) != NULL) {
+        if (strncmp(dp->d_name, "controlC", 8) == 0) {
+            udev_list_entry_add(&udev_device->properties, "SOUND_INITIALIZED", "1", 0);
+            break;
+        }
+    }
+
+    closedir(device_folder);
+}
+
 static void make_bit(unsigned long *arr, int cnt, const char *str)
 {
     size_t len;
@@ -593,6 +626,7 @@ struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *
 
     set_properties_from_evdev(udev_device);
     set_properties_from_props(udev_device);
+    is_sound_initialized(udev_device, path);
 
     free(driver);
     free(subsystem);
