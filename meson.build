@@ -62,6 +62,12 @@ libudev = library(
     install: true,
 )
 
+executable(
+    'libudev-zero-helper',
+    'contrib/helper.c',
+    install: true,
+)
+
 install_headers(
     configure_file(
         input: 'udev.h',
